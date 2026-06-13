@@ -19,9 +19,9 @@
     <author mail="admin@example.com">ShareGate</author>
     <namespace>ShareGate</namespace>
     <category>tools</category>
-    <website>https://github.com/sharegate/nextcloud-app</website>
-    <bugs>https://github.com/sharegate/nextcloud-app/issues</bugs>
-    <repository type="git">https://github.com/sharegate/nextcloud-app.git</repository>
+    <website>https://github.com/abitlea/sharegate-nextcloud</website>
+    <bugs>https://github.com/abitlea/sharegate-nextcloud/issues</bugs>
+    <repository type="git">https://github.com/abitlea/sharegate-nextcloud.git</repository>
     <dependencies>
         <php min-version="8.2" max-version="8.5"/>
         <nextcloud min-version="28" max-version="33"/>
