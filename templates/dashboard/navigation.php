@@ -35,7 +35,7 @@ $menuOpenPath = 'M21,15.61L19.59,17L14.58,12L19.59,7L21,8.39L17.44,12L21,15.61M3
 $menuClosedPath = 'M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z';
 ?>
 <div id="app-navigation" class="app-navigation sharegate-navigation" role="navigation">
-	<nav id="app-navigation-vue" class="app-navigation__content" aria-label="<?php p($l->t('ShareGate')); ?>">
+	<nav id="app-navigation-vue" class="app-navigation__content" aria-label="<?php p($l->t('Paid sharing')); ?>">
 		<div class="app-navigation__search" id="sg-nav-search">
 			<div class="app-navigation-search">
 				<div class="input-field app-navigation-search__input input-field--label-outside input-field--trailing-icon">
@@ -62,7 +62,7 @@ $menuClosedPath = 'M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z';
 			</div>
 		</div>
 		<div class="app-navigation__body app-navigation__body--no-list">
-			<ul class="app-navigation-list sharegate-navigation-list" aria-label="<?php p($l->t('ShareGate')); ?>">
+			<ul class="app-navigation-list sharegate-navigation-list" aria-label="<?php p($l->t('Paid sharing')); ?>">
 				<?php foreach ($entries as $entry) : ?>
 					<?php $label = $l->t($entry['label']); ?>
 					<li class="app-navigation-entry-wrapper sharegate-navigation__item"

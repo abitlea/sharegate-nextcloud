@@ -8,7 +8,7 @@ $form = [
 ];
 ?>
 <div id="sharegate-admin-settings" class="section">
-	<h2><?php p($l->t('ShareGate payment settings')); ?></h2>
+	<h2><?php p($l->t('Paid sharing payment settings')); ?></h2>
 
 	<p class="settings-hint">
 		<?php p($l->t('Configure payment provider. Mock mode is for development; Alipay Face-to-Face uses sandbox or production.')); ?>

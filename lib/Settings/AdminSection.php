@@ -21,7 +21,7 @@ class AdminSection implements IIconSection {
 	}
 
 	public function getName(): string {
-		return $this->l10n->t('ShareGate');
+		return $this->l10n->t('Paid sharing');
 	}
 
 	public function getPriority(): int {

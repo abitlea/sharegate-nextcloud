@@ -1,4 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="12" fill="#667eea"/>
-  <text x="32" y="40" text-anchor="middle" font-size="28" fill="#fff" font-family="sans-serif">�</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Paid file sharing">
+  <defs>
+    <linearGradient id="sg-bg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="sg-coin" x1="38" y1="38" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#sg-bg)"/>
+  <!-- Share nodes -->
+  <g fill="#fff">
+    <circle cx="44" cy="17" r="3.2"/>
+    <circle cx="52" cy="25" r="2.6"/>
+    <circle cx="36" cy="25" r="2.6"/>
+  </g>
+  <g stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.85">
+    <line x1="44" y1="20" x2="44" y2="23"/>
+    <line x1="41.5" y1="25" x2="38.5" y2="25"/>
+    <line x1="46.5" y1="25" x2="49.5" y2="25"/>
+  </g>
+  <!-- Document -->
+  <path fill="#fff" d="M17 21c0-2.2 1.8-4 4-4h15l11 11v25c0 2.2-1.8 4-4 4H21c-2.2 0-4-1.8-4-4V21z"/>
+  <path fill="#c7d2fe" d="M36 17v11h11"/>
+  <g stroke="#818cf8" stroke-width="2" stroke-linecap="round">
+    <line x1="23" y1="33" x2="41" y2="33"/>
+    <line x1="23" y1="39" x2="37" y2="39"/>
+    <line x1="23" y1="45" x2="31" y2="45"/>
+  </g>
+  <!-- Payment coin -->
+  <circle cx="48" cy="48" r="11" fill="url(#sg-coin)"/>
+  <circle cx="48" cy="48" r="8.5" fill="none" stroke="#fff" stroke-width="1.4" opacity="0.55"/>
+  <g stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none">
+    <line x1="48" y1="42" x2="48" y2="54"/>
+    <line x1="43" y1="46" x2="53" y2="46"/>
+    <line x1="43" y1="50" x2="53" y2="50"/>
+    <path d="M44 41.5c2-1.6 4-1.6 8 0"/>
+  </g>
 </svg>

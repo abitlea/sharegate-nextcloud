@@ -2,7 +2,7 @@
 	<NcContent app-name="sharegate">
 		<NcAppNavigation
 			:open.sync="navigationOpen"
-			:aria-label="t('ShareGate', 'ShareGate')">
+			:aria-label="t('Paid sharing', '付费分享')">
 			<template v-if="showSearch" #search>
 				<NcAppNavigationSearch
 					v-model="searchQuery"
