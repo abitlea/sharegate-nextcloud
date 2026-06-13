@@ -1,0 +1,58 @@
+body {
+  font-family: -apple-system, system-ui, "Microsoft YaHei", sans-serif;
+  background: #f0f2f5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.mock-pay-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 32px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.mock-pay-icon { font-size: 52px; margin-bottom: 16px; }
+.mock-pay-card h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; }
+.mock-pay-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 20px 0;
+  text-align: left;
+  font-size: 13px;
+  color: #666;
+  line-height: 2;
+}
+.mock-pay-info span { color: #333; font-weight: 500; float: right; }
+.mock-pay-notice {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #795548;
+  margin-bottom: 24px;
+  text-align: left;
+  line-height: 1.6;
+}
+.mock-pay-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #27ae60;
+  color: #fff;
+}
+.mock-pay-btn:hover:not(:disabled) { background: #219a52; }
+.mock-pay-btn:disabled { background: #a5d6a7; cursor: wait; }
+.mock-pay-status { margin-top: 20px; font-size: 15px; padding: 12px; border-radius: 8px; }
+.mock-pay-status.success { background: #e8f5e9; color: #2e7d32; }
+.mock-pay-status.error { background: #ffebee; color: #c62828; }

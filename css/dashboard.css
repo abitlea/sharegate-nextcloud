@@ -1,0 +1,693 @@
+/* ShareGate Dashboard — NC Files Vue layout (app-navigation + app-content) */
+/* Core nav/content chrome: NC @nextcloud/vue global styles */
+
+/*
+ * 高度对齐 /apps/files（NC 33 custom app）：
+ * - 外层 #content（apps.scss）负责 fixed + margin-top: var(--header-height)
+ * - 内层 #content-vue 嵌套在 #app-content 里，不得再 fixed/再 margin-top（否则盖住顶栏或双偏移）
+ */
+#content.app-sharegate #app-content,
+#content.app-sharegate #sharegate-dashboard.app.sg-app {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+}
+
+#content.app-sharegate #content-vue.content {
+    position: static !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0;
+    border-radius: 0;
+    overflow: hidden;
+    display: flex;
+    flex: 1 1 auto;
+}
+
+.sharegate-navigation .app-navigation-entry-utils-counter:empty {
+    display: none;
+}
+
+/* Main content header — NC Files files-list__header */
+.files-list__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    min-height: calc(var(--default-clickable-area) + 4px);
+    background-color: var(--color-main-background);
+    border-bottom: 1px solid var(--color-border);
+    flex: 0 0 auto;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.files-list__header-spacer {
+    flex: 0 0 24px;
+}
+
+/* 对齐 apps/files BreadCrumbs.vue */
+.files-list__header .files-list__breadcrumbs {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.files-list__breadcrumbs .vue-crumb .action-item .button-vue__wrapper {
+    flex-direction: row-reverse;
+}
+
+.files-list__breadcrumbs .vue-crumb:not(.dropdown) .action-item .button-vue {
+    padding: 0 8px 0 14px;
+    max-width: 100%;
+}
+
+.files-list__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.files-list__header-grid-button {
+    flex: 0 0 auto;
+}
+
+.files-filestable {
+    width: 100%;
+}
+
+.sg-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 820px;
+    table-layout: auto;
+}
+
+.sg-table th,
+.sg-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    font-weight: normal;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.sg-table th {
+    color: var(--color-text-maxcontrast);
+    font-weight: 600;
+    font-size: 0.85em;
+}
+
+.sg-table th .columntitle {
+    display: block;
+    padding: 0;
+    height: auto;
+}
+
+.sg-table tbody tr {
+    transition: background-color var(--animation-quick) ease-in-out;
+}
+
+.sg-table tbody tr:hover,
+.sg-table tbody tr:focus,
+.files-list__row:hover,
+.files-list__row:focus {
+    background-color: var(--color-background-hover);
+}
+
+.sg-table tbody tr:active,
+.sg-table tbody tr.selected,
+.files-list__row.selected {
+    background-color: var(--color-primary-element-light);
+}
+
+.sg-actions {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.sg-actions .button {
+    opacity: 0.4;
+    margin: 0 2px;
+    padding: 4px 8px;
+    height: auto;
+    min-height: 0;
+    font-size: 0.85em;
+}
+
+.sg-actions .button:hover,
+.sg-actions .button:focus,
+tr:hover .sg-actions .button,
+tr:focus .sg-actions .button {
+    opacity: 0.85;
+}
+
+tr:hover .sg-actions .button:hover,
+tr:focus .sg-actions .button:focus {
+    opacity: 1;
+}
+
+/* 隐藏 NC 默认侧栏开关（ShareGate 用行内操作打开侧栏） */
+#content-vue .app-sidebar__toggle,
+#content-vue .app-details-toggle {
+    display: none !important;
+}
+
+#content.app-sharegate #app-content-vue.app-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#app-content-vue.app-content > .files-list,
+#app-content-vue.app-content > .sg-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* 对齐 apps/files FilesListVirtual.vue */
+.files-list {
+    --row-height: 44px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.files-filestable,
+.files-list__grid.sg-files-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* 表头粘在表格滚动区顶部（避免整页滚动 + sticky 错位） */
+.files-filestable .sg-table thead th {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--color-main-background);
+    box-shadow: 0 1px 0 var(--color-border);
+}
+
+.sg-pagination {
+    flex: 0 0 auto;
+}
+
+/* Sidebar 表单说明文字 */
+.sg-sidebar-form__note {
+    padding: 12px;
+    margin: 12px 0;
+    background-color: var(--color-info-light);
+    color: var(--color-text);
+    border-left: 4px solid var(--color-info);
+    border-radius: 3px;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* 网格视图 */
+.sg-files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 12px;
+}
+
+.sg-grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    border: none;
+    border-radius: var(--border-radius-large);
+    background: transparent;
+    color: var(--color-main-text);
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+}
+
+.sg-grid-item:hover,
+.sg-grid-item:focus,
+.sg-grid-item.selected {
+    background-color: var(--color-background-hover);
+}
+
+.sg-grid-item.selected {
+    background-color: var(--color-primary-element-light);
+}
+
+.sg-grid-item__icon {
+    width: 64px;
+    height: 64px;
+}
+
+.sg-grid-item__name {
+    font-weight: 600;
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    width: 100%;
+}
+
+.sg-grid-item__meta {
+    font-size: 0.8em;
+    color: var(--color-text-maxcontrast);
+}
+
+/* File name cell — 非链接，默认箭头光标；双击打开文件 */
+.sg-table td.filename {
+    cursor: default;
+}
+
+.sg-file-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    color: var(--color-main-text);
+    cursor: default;
+}
+
+.sg-file-name .files-list__row-icon-preview,
+.sg-file-icon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+}
+
+.sg-grid-item__icon.files-list__row-icon-preview {
+    width: 64px;
+    height: 64px;
+}
+
+.sg-file-name__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== File Table ===== */
+.sg-table-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 250px;
+    display: block;
+}
+
+.sg-table th,
+.sg-table td {
+    padding: 0 14px;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    font-weight: normal;
+    font-style: normal;
+    height: 51px;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.sg-table th {
+    color: var(--color-text-maxcontrast);
+    font-weight: 600;
+    font-size: 0.85em;
+    height: 50px;
+}
+
+.sg-table th .columntitle {
+    display: block;
+    padding: 15px 0;
+    height: 50px;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+/* Row interactions — align with NC FilesListVirtual */
+.files-list__row {
+    cursor: pointer;
+    outline: none;
+}
+
+.sg-table tbody tr:hover,
+.sg-table tbody tr:focus,
+.files-list__row:hover,
+.files-list__row:focus {
+    background-color: var(--color-background-hover);
+}
+
+.sg-table tbody tr:active,
+.sg-table tbody tr.selected,
+.files-list__row.selected {
+    background-color: var(--color-primary-element-light);
+}
+
+.files-list__row.sg-row--highlight {
+    background-color: var(--color-primary-element-light);
+}
+
+.sg-table tbody tr td:first-child {
+    padding-left: 14px;
+}
+
+/* Row title and meta */
+.sg-row__title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sg-row__meta {
+    font-size: 0.85em;
+    color: var(--color-text-maxcontrast);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Row action buttons (shown on hover) */
+.sg-actions {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.sg-actions .button {
+    opacity: 0.3;
+    margin: 0 2px;
+    padding: 4px 8px;
+    height: auto;
+    min-height: 0;
+    font-size: 0.85em;
+}
+
+.sg-actions .button:hover,
+.sg-actions .button:focus,
+tr:hover .sg-actions .button,
+tr:focus .sg-actions .button {
+    opacity: 0.7;
+}
+
+tr:hover .sg-actions .button:hover,
+tr:focus .sg-actions .button:focus {
+    opacity: 1;
+}
+
+/* Testing hint */
+.sg-testing-hint {
+    font-size: 0.8em;
+    color: var(--color-text-maxcontrast);
+    margin-left: 4px;
+}
+
+/* Badges */
+.sg-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--border-radius-pill, 16px);
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.sg-badge--active {
+    background: var(--color-success-element);
+    color: var(--color-success-text);
+}
+.sg-badge--awaiting_payment,
+.sg-badge--awaiting_first_payment {
+    background: var(--color-warning-element);
+    color: var(--color-warning-text);
+}
+.sg-badge--expiring_soon {
+    background: var(--color-warning-element);
+    color: var(--color-warning-text);
+}
+.sg-badge--expired {
+    background: var(--color-error-element);
+    color: var(--color-error-text);
+}
+.sg-badge--disabled {
+    background: var(--color-background-dark);
+    color: var(--color-text-maxcontrast);
+}
+
+/* ===== Pagination ===== */
+.sg-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+}
+
+.sg-pagination__info {
+    color: var(--color-text-maxcontrast);
+    font-size: 0.85em;
+    margin-right: 8px;
+}
+
+/* ===== Panels (stats) ===== */
+.sg-panel {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+/* ===== Account panel (files-list shell) ===== */
+.sg-account-panel__notice {
+    flex: 0 0 auto;
+    margin: 12px 20px 0;
+    max-width: 720px;
+}
+
+.sg-account-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 20px 24px;
+    box-sizing: border-box;
+}
+
+.sg-account-panel__body .sg-account-form,
+.sg-account-panel__body .sg-account-readonly {
+    max-width: 720px;
+}
+
+.sg-account-panel__body .sg-code {
+    word-break: break-all;
+}
+
+.sg-account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sg-account-form__field {
+    max-width: 560px;
+}
+
+.sg-account-form__label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.sg-account-select {
+    display: block;
+    width: 100%;
+    max-width: 560px;
+    min-height: var(--default-clickable-area, 44px);
+    padding: 8px 12px;
+    border: 2px solid var(--color-border-maxcontrast, #ddd);
+    border-radius: var(--border-radius-large, 8px);
+    background-color: var(--color-main-background);
+    color: var(--color-main-text);
+    box-sizing: border-box;
+}
+
+.sg-account-select:focus {
+    border-color: var(--color-primary-element);
+    outline: none;
+}
+
+.sg-account-form__meta {
+    margin: 0;
+}
+
+.sg-account-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.sg-account-panel__body .sg-alipay-panel {
+    margin: 8px 0 4px;
+    padding: 14px 16px;
+    background: var(--color-background-hover, #f8f9fa);
+    border-radius: var(--border-radius-large, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sg-account-panel__body .sg-alipay-panel h3 {
+    margin: 0 0 4px;
+}
+
+.sg-account-panel__body .sg-save-status {
+    font-size: 13px;
+}
+
+.sg-account-panel__body .sg-save-status.ok {
+    color: var(--color-success, #27ae60);
+}
+
+.sg-account-panel__body .sg-save-status.err {
+    color: var(--color-error, #e74c3c);
+}
+
+.sg-panel h2 {
+    font-size: 1.6em;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.sg-stats-dl {
+    padding: 12px 0;
+}
+
+.sg-stats-dl dt {
+    width: 200px;
+    white-space: nowrap;
+    text-align: right;
+    padding: 12px;
+    padding-left: 0;
+    display: inline-block;
+}
+
+.sg-stats-dl dd {
+    display: inline-block;
+    padding: 12px;
+    padding-left: 0;
+    font-weight: 600;
+}
+
+.sg-stats-payments {
+    margin-top: 24px;
+}
+
+.sg-stats-payments h3 {
+    font-size: 1.2em;
+    margin-bottom: 12px;
+}
+
+.sg-stats-payments table th,
+.sg-stats-payments table td {
+    padding: 8px 14px;
+}
+
+/* ===== Loading & Empty ===== */
+.sg-dashboard__loading {
+    padding: 24px;
+    text-align: center;
+    color: var(--color-text-maxcontrast);
+}
+
+.sg-dashboard__empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--color-text-maxcontrast);
+    font-size: 1.1em;
+}
+
+/* ===== Create share sidebar (NcAppSidebar) ===== */
+.sg-sidebar-form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 12px 16px 20px;
+}
+
+.sg-sidebar-form__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.sg-sidebar-form__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
+}
+
+.sg-sidebar__loading {
+	display: block;
+	margin: 24px auto;
+}
+
+/* ===== Settings dialog ===== */
+.sg-settings-dialog {
+    padding: 16px;
+}
+
+.sg-settings-dialog p {
+    margin-bottom: 8px;
+}
+
+.sg-input-wide {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sg-input-narrow {
+    width: 120px;
+}
+
+/* Cookie consent overlay for copy */
+.sg-copy-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sg-copy-overlay .modal-container {
+    background: var(--color-main-background);
+    border-radius: var(--border-radius-large);
+    padding: 24px;
+    max-width: 500px;
+    text-align: center;
+}

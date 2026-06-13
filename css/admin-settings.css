@@ -1,0 +1,12 @@
+.sg-input-wide { width: 100%; max-width: 560px; }
+.sg-alipay-panel {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: var(--color-background-hover, #f8f9fa);
+  border-radius: var(--border-radius-large, 8px);
+}
+.sg-alipay-panel h3 { margin-bottom: 12px; }
+.sg-save-status { margin-left: 10px; font-size: 13px; }
+.sg-save-status.ok { color: var(--color-success, #27ae60); }
+.sg-save-status.err { color: var(--color-error, #e74c3c); }
+#sg-notify-url { word-break: break-all; font-size: 12px; }

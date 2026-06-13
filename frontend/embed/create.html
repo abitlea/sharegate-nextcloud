@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- 归档副本：源文件在 ShareGate monorepo apps/server/src/frontend/embed/create.html -->
+<!-- 运行 scripts/sync-from-sharegate.ps1 更新 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>创建付费分享 - ShareGate</title>
+<link rel="stylesheet" href="create.css">
+</head>
+<body>
+<div class="card" id="app">
+  <h1>💰 创建付费分享</h1>
+  <div class="subtitle">由 ShareGate 提供 · 买家扫码支付后下载</div>
+  <div class="info-bar" id="info-bar">
+    <strong>与普通分享区别：</strong>买家需扫码付款后才可下载，款项由你设置的收款账号接收。
+  </div>
+  <div class="api-key-bar" id="api-key-bar">
+    <label>🔑 Key</label>
+    <input type="password" id="api-key-input" placeholder="管理 API Key（开发环境可留空）"
+           oninput="saveApiKey(this.value)">
+  </div>
+  <div id="form-area">
+    <div class="form-group">
+      <label>文件路径</label>
+      <input type="text" id="file-path" disabled>
+    </div>
+    <div class="form-group">
+      <label>文件名</label>
+      <input type="text" id="file-name" disabled>
+    </div>
+    <div class="form-group">
+      <label>分享标题 <span class="required">*</span></label>
+      <input type="text" id="share-title" placeholder="例如：付费文档">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>价格（元）<span class="required">*</span></label>
+        <input type="number" id="price-yuan" value="1.00" min="0.01" step="0.01">
+        <div class="field-hint">最低 0.01 元</div>
+      </div>
+      <div class="form-group">
+        <label>授权天数 <span class="required">*</span></label>
+        <input type="number" id="access-days" value="30" min="1" max="365">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>链接有效期（天）</label>
+      <input type="number" id="expire-days" placeholder="留空 = 永不过期" min="1" max="3650">
+    </div>
+    <button class="btn btn-primary" id="submit-btn" onclick="handleSubmit()">
+      <span class="loading" id="submit-loading"><span class="spinner"></span></span>
+      ✨ 生成付费分享
+    </button>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+  <div id="success-area" style="display:none;"></div>
+  <div class="footer-link">
+    <a id="admin-link" href="/admin/share" target="_blank">⚙️ 管理后台（收款账号配置）</a>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="create.js"></script>
+<script>
+  ShareGateEmbedCreate.init(window.__SHAREGATE_EMBED_CONFIG || null);
+</script>
+</body>
+</html>

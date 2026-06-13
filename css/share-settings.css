@@ -1,0 +1,18 @@
+.sharegate-settings .sg-input-wide,
+.sg-settings-dialog .sg-input-wide {
+	width: 100%;
+	max-width: 480px;
+}
+
+.sharegate-settings .sg-input-narrow,
+.sg-settings-dialog .sg-input-narrow {
+	width: 8rem;
+}
+
+.sharegate-settings .sg-settings-form p {
+	margin-bottom: 1rem;
+}
+
+.sharegate-settings .sg-settings-loading {
+	color: var(--color-text-maxcontrast);
+}

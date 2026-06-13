@@ -1,0 +1,16 @@
+/vendor/
+/composer.phar
+/phpunit.phar
+/release/*
+!/release/screenshots/
+!/release/screenshots/README.md
+/node_modules/
+/.phpunit.result.cache
+/.phpunit.cache
+/.idea/
+/.vscode/
+/.cursor/
+/scripts/release/env.local.ps1
+/scripts/release/env.local.sh
+/temp_*.py
+/*.tar.gz

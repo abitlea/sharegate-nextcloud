@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>sharegate</id>
+    <name>付费分享</name>
+    <summary>付费文件分享 — 公开链接、付费管理、统计与支付宝当面付</summary>
+    <description><![CDATA[在 Nextcloud 内为网盘文件创建付费外链，买家支付后下载或转存到本站账户。
+
+**管理台四页**：你的共享（文件表）· 付费分享 · 账户绑定 · 收益查看（预览/转存/下载）
+
+- 支付宝当面付（沙箱/生产）或 Mock 开发支付
+- 卖家管理台融入 NC 全局侧栏
+- 无需单独部署 ShareGate 服务
+
+兼容 Nextcloud 28–33。
+    ]]></description>
+    <version>1.3.2</version>
+    <licence>agpl</licence>
+    <author mail="admin@example.com">ShareGate</author>
+    <namespace>ShareGate</namespace>
+    <category>tools</category>
+    <website>https://github.com/sharegate/nextcloud-app</website>
+    <bugs>https://github.com/sharegate/nextcloud-app/issues</bugs>
+    <repository type="git">https://github.com/sharegate/nextcloud-app.git</repository>
+    <dependencies>
+        <php min-version="8.2" max-version="8.5"/>
+        <nextcloud min-version="28" max-version="33"/>
+    </dependencies>
+    <settings>
+        <admin>OCA\ShareGate\Settings\Admin</admin>
+        <admin-section>OCA\ShareGate\Settings\AdminSection</admin-section>
+    </settings>
+    <navigations>
+        <navigation>
+            <id>sharegate</id>
+            <name>ShareGate</name>
+            <route>sharegate.dashboard.index</route>
+            <order>80</order>
+            <icon>app.svg</icon>
+        </navigation>
+    </navigations>
+</info>

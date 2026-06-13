@@ -1,0 +1,101 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\ShareGate\Service;
+
+use OCA\ShareGate\Db\PaymentMapper;
+use OCA\ShareGate\Db\Share;
+use OCA\ShareGate\Db\ShareMapper;
+use OCA\ShareGate\Db\ShareStatsMapper;
+
+class ShareStatsService {
+	public function __construct(
+		private ShareMapper $shareMapper,
+		private ShareStatsMapper $shareStatsMapper,
+		private PaymentMapper $paymentMapper,
+	) {
+	}
+
+	public function recordPreview(string $shareId): void {
+		try {
+			$this->shareStatsMapper->increment($shareId, 'preview_count');
+		} catch (\Throwable $e) {
+			// 统计失败不影响主流程
+		}
+	}
+
+	public function recordDownload(string $shareId): void {
+		try {
+			$this->shareStatsMapper->increment($shareId, 'download_count');
+		} catch (\Throwable $e) {
+		}
+	}
+
+	public function recordSave(string $shareId): void {
+		try {
+			$this->shareStatsMapper->increment($shareId, 'save_count');
+		} catch (\Throwable $e) {
+		}
+	}
+
+	/**
+	 * @return array{success: true, items: list<array<string, mixed>>, total: int}
+	 */
+	public function listForSeller(string $userId): array {
+		try {
+			$shares = $this->shareMapper->findByUser($userId);
+			$shareIds = array_map(static fn (Share $s) => $s->getShareId(), $shares);
+			$statsMap = $shareIds === [] ? [] : $this->shareStatsMapper->findByShareIds($shareIds);
+			$revenueMap = $shareIds === [] ? [] : $this->paymentMapper->sumPaidAmountByShareIds($shareIds);
+
+			$items = [];
+			foreach ($shares as $share) {
+				try {
+					$sid = $share->getShareId();
+					$stats = $statsMap[$sid] ?? null;
+					$items[] = [
+						'share_id' => $sid,
+						'file_name' => $share->getFileName(),
+						'file_path' => $share->getFilePath(),
+						'share_status_label' => $this->shareStatusLabel($share),
+						'created_at' => $share->getCreatedAt(),
+						'price' => $share->getPrice(),
+						'revenue' => $revenueMap[$sid] ?? 0,
+						'preview_count' => $stats?->getPreviewCount() ?? 0,
+						'save_count' => $stats?->getSaveCount() ?? 0,
+						'download_count' => $stats?->getDownloadCount() ?? 0,
+					];
+				} catch (\Throwable) {
+					continue;
+				}
+			}
+
+			return [
+				'success' => true,
+				'items' => $items,
+				'total' => count($items),
+			];
+		} catch (\Throwable $e) {
+			return ['success' => false, 'error' => '读取统计失败: ' . $e->getMessage()];
+		}
+	}
+
+	public function countForSeller(string $userId): int {
+		return count($this->shareMapper->findByUser($userId));
+	}
+
+	private function shareStatusLabel(Share $share): string {
+		if ($share->getStatus() !== 'active') {
+			return 'disabled';
+		}
+		$expireAt = $share->getExpireAt();
+		if ($expireAt !== null && $expireAt <= (int)(microtime(true) * 1000)) {
+			return 'expired';
+		}
+		if ($expireAt === null) {
+			return 'permanent';
+		}
+		return 'limited';
+	}
+}

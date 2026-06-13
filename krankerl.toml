@@ -1,0 +1,7 @@
+# Krankerl 打包配置 — https://github.com/nextcloud/krankerl
+# 打包前请先: composer install --no-dev
+before_hooks = []
+after_hooks = []
+
+[package]
+appstore = true
