@@ -2,12 +2,12 @@
 
 Nextcloud 应用：**安装启用即可用**，无需单独部署 Node 服务。
 
-**当前版本** 1.3.0 — 管理台四页（公开链接 · 付费分享 · 账户绑定 · 统计）、买家付费页、Mock/支付宝当面付、站内转存。
+**当前版本** 1.3.2 — 管理台四页（你的共享 · 付费分享 · 账户绑定 · 收益查看）、买家付费页、Mock/支付宝当面付、站内转存。
 
 ## 要求
 
-- Nextcloud 28 – 30
-- PHP 8.1+（`openssl`、`mbstring` 扩展；跑测试与 `composer install` 时需要）
+- Nextcloud 28 – 33
+- PHP 8.2+（`openssl`、`mbstring` 扩展；跑测试与 `composer install` 时需要）
 
 ## 安装
 
@@ -23,14 +23,14 @@ composer install --no-dev
 ## 卖家使用（管理台）
 
 1. 登录 Nextcloud
-2. 顶栏 **ShareGate**，或访问 `/index.php/apps/sharegate/`
+2. 顶栏 **付费分享**，或访问 `/index.php/apps/sharegate/`
 
 多实例部署见 [docs/RELEASE.md](docs/RELEASE.md)（DietPi `/nextcloud` vs Docker `:8080`）。
 3. 侧栏四页：
    - **公开链接** — 网盘文件，未分享行点「添加分享」
    - **付费分享** — 复制链接 / 编辑 / 取消分享
    - **账户绑定** — 管理员配置支付宝（Mock 开发模式）
-   - **统计相关** — 预览、转存、下载次数
+   - **收益查看** — 预览、转存、下载次数
 
 创建分享：`/apps/sharegate/embed/create`，支持 `?path=Documents/a.pdf&name=a.pdf` 预填。
 
@@ -40,7 +40,7 @@ composer install --no-dev
 
 ## 支付配置
 
-**Nextcloud 管理后台 → 设置 → ShareGate**，或管理台 **账户绑定** 页（管理员）。
+**Nextcloud 管理后台 → 设置 → 付费分享**，或管理台 **账户绑定** 页（管理员）。
 
 - Mock：开发测试，无真实扣款
 - 支付宝当面付：沙箱或生产，需配置异步通知 URL（公网可达）
@@ -77,6 +77,6 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-from-sharegate.ps1
 | 1 | 创建付费分享 + 买家页 | ✅ |
 | 2 | Mock 支付 + 下载 | ✅ |
 | 3 | 支付宝当面付 + 管理设置 | ✅ |
-| 4 | 管理台四页 + 统计 + 转存（v1.3.0） | ✅ |
+| 4 | 管理台四页 + 收益查看 + 转存（v1.3.2） | ✅ |
 | 5 | 应用商店发布 | ⬜ 见 [STORE.md](docs/STORE.md) |
 | 6 | 全站管理 API、`file_id`、Files 右键 | ⬜ 二期 |

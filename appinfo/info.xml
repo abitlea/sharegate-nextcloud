@@ -16,7 +16,7 @@
     ]]></description>
     <version>1.3.2</version>
     <licence>agpl</licence>
-    <author mail="admin@example.com">ShareGate</author>
+    <author mail="abitlea@126.com">abitlea</author>
     <namespace>ShareGate</namespace>
     <category>tools</category>
     <website>https://github.com/abitlea/sharegate-nextcloud</website>
@@ -33,7 +33,7 @@
     <navigations>
         <navigation>
             <id>sharegate</id>
-            <name>ShareGate</name>
+            <name>Paid sharing</name>
             <route>sharegate.dashboard.index</route>
             <order>80</order>
             <icon>app.svg</icon>
