@@ -44,7 +44,8 @@ class SaveToCloudService {
 			$source = $this->downloadService->resolveShareFile($share);
 			$destFolder = $this->resolveDestFolder($targetUserId);
 			$destName = $this->uniqueFileName($destFolder, $source->getName());
-			$source->copy($destFolder, $destName);
+			$targetPath = rtrim($destFolder->getPath(), '/') . '/' . $destName;
+			$source->copy($targetPath);
 			$this->shareStatsService->recordSave($shareId);
 			$relative = self::DEST_FOLDER . '/' . $destName;
 			return [
