@@ -85,11 +85,15 @@ class PaymentService {
 			$qrCode = $paymentUrl;
 		}
 
+		$providerName = $provider !== '' ? $provider : MockPaymentProvider::NAME;
+
 		$payment = new Payment();
 		$payment->setShareId($shareId);
 		$payment->setOrderId($orderId);
 		$payment->setAmount($share->getPrice());
-		$payment->setProvider($provider);
+		// Entity skips unchanged defaults on INSERT; touch provider so MySQL always gets a value.
+		$payment->setProvider('');
+		$payment->setProvider($providerName);
 		$payment->setClientUserId($buyerId);
 		$payment->setStatus('pending');
 		$payment->setQrCode($qrCode);

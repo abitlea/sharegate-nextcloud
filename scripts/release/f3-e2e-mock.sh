@@ -61,21 +61,34 @@ else
 fi
 
 step "Login ($NC_USER)"
-LOGIN_HTML="$(curl -sf -c "$COOKIE_JAR" "$NC_URL/login")"
-TOKEN="$(get_token "$LOGIN_HTML")"
-curl -sf -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST "$NC_URL/login" \
-  -d "user=$NC_USER" \
-  -d "password=$NC_PASSWORD" \
-  -d "timezone=UTC" \
-  -d "timezone_offset=0" \
-  ${TOKEN:+-d "requesttoken=$TOKEN"} >/dev/null
+if curl -sf -u "$NC_USER:$NC_PASSWORD" -H "OCS-APIRequest: true" \
+  "$NC_URL/ocs/v2.php/cloud/user?format=json" | grep -q '"status":"ok"'; then
+  echo "Basic Auth OK"
+  DASH_HTML="$(curl -sf -u "$NC_USER:$NC_PASSWORD" "$APP_BASE/")"
+  TOKEN="$(get_token "$DASH_HTML")"
+  AUTH_CURL=( -u "$NC_USER:$NC_PASSWORD" )
+else
+  ORIGIN="$(python3 -c "from urllib.parse import urlparse; u=urlparse('$NC_URL'); print(f'{u.scheme}://{u.netloc}')" 2>/dev/null || echo "${NC_URL%/nextcloud}")"
+  LOGIN_HTML="$(curl -sf -c "$COOKIE_JAR" "$NC_URL/login")"
+  TOKEN="$(get_token "$LOGIN_HTML")"
+  curl -sf -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null -X POST "$NC_URL/login" \
+    -H "Origin: $ORIGIN" \
+    -H "Referer: $NC_URL/login" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "user=$NC_USER" \
+    -d "password=$NC_PASSWORD" \
+    -d "timezone=UTC" \
+    -d "timezone_offset=0" \
+    ${TOKEN:+-d "requesttoken=$TOKEN"}
 
-DASH_HTML="$(curl -sf -b "$COOKIE_JAR" "$APP_BASE/")"
-TOKEN="$(get_token "$DASH_HTML")"
+  DASH_HTML="$(curl -sf -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$APP_BASE/")"
+  TOKEN="$(get_token "$DASH_HTML")"
+  AUTH_CURL=( -b "$COOKIE_JAR" )
+fi
 [[ -n "$TOKEN" ]] || { echo "requesttoken not found after login" >&2; exit 1; }
 
 step "Create paid share"
-CREATE_JSON="$(curl -sf -b "$COOKIE_JAR" -X POST "$APP_BASE/share/create" \
+CREATE_JSON="$(curl -sf "${AUTH_CURL[@]}" -X POST "$APP_BASE/share/create" \
   -H "requesttoken: $TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
@@ -108,7 +121,7 @@ echo "$VERIFY_JSON"
 echo "$VERIFY_JSON" | grep -q ACCESS_GRANTED || { echo "verify failed" >&2; exit 1; }
 
 step "Save to cloud (logged-in user)"
-SAVE_JSON="$(curl -sf -b "$COOKIE_JAR" -X POST "$APP_BASE/s/$SHARE_ID/save-to-cloud" \
+SAVE_JSON="$(curl -sf "${AUTH_CURL[@]}" -X POST "$APP_BASE/s/$SHARE_ID/save-to-cloud" \
   -H "requesttoken: $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"provider_user_id\":\"$BUYER_ID\"}")"

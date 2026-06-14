@@ -13,6 +13,11 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "nc-local.ps1")
 
+$envLocal = Join-Path $PSScriptRoot "env.local.ps1"
+if (Test-Path $envLocal) {
+    . $envLocal
+}
+
 if (-not $NcUrl) { $NcUrl = $env:NC_URL }
 if (-not $NcUrl) { throw "Set -NcUrl or env NC_URL (e.g. https://cloud.example.com)" }
 if (-not $Password) { $Password = $env:NC_PASSWORD }
@@ -20,32 +25,6 @@ if (-not $Password) { throw "Set -Password or env NC_PASSWORD" }
 
 $NcUrl = $NcUrl.TrimEnd("/")
 $appBase = "$NcUrl/index.php/apps/sharegate"
-
-function Get-RequestToken($html) {
-    if ($html -match 'data-requesttoken="([^"]+)"') { return $Matches[1] }
-    if ($html -match "requestToken\s*:\s*'([^']+)'") { return $Matches[1] }
-    if ($html -match 'OC\.requestToken\s*=\s*"([^"]+)"') { return $Matches[1] }
-    return $null
-}
-
-function Invoke-NcLogin {
-    param([string]$BaseUrl, [string]$User, [string]$Pass)
-    $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-    $loginPage = Invoke-WebRequest -Uri "$BaseUrl/login" -WebSession $session -UseBasicParsing
-    $token = Get-RequestToken $loginPage.Content
-    $body = @{
-        user = $User
-        password = $Pass
-        timezone = "UTC"
-        timezone_offset = "0"
-    }
-    if ($token) { $body.requesttoken = $token }
-    Invoke-WebRequest -Uri "$BaseUrl/login" -Method POST -WebSession $session -Body $body -UseBasicParsing | Out-Null
-    $dash = Invoke-WebRequest -Uri "$BaseUrl/index.php/apps/sharegate/" -WebSession $session -UseBasicParsing
-    $rt = Get-RequestToken $dash.Content
-    if (-not $rt) { throw "requesttoken not found after login" }
-    return @{ Session = $session; RequestToken = $rt }
-}
 
 Write-Step "F3 Mock E2E ($NcUrl)"
 
@@ -65,11 +44,13 @@ if ($ncContainer) {
     Write-Step "Create test file (native NC data dir)"
     New-NcTestFile -NcRoot $NcRoot -PhpExe $php -User $User -FileName $TestFileName
 } else {
-    Write-Warning "No -NcRoot and no Docker; assuming files/$User/$TestFileName already exists in NC"
+    Write-Step "Create test file (WebDAV)"
+    New-NcTestFileRemote -BaseUrl $NcUrl -User $User -Pass $Password -FileName $TestFileName
 }
 
 Write-Step "Login ($User)"
-$auth = Invoke-NcLogin -BaseUrl $NcUrl -User $User -Pass $Password
+$auth = Invoke-NcWebLogin -BaseUrl $NcUrl -User $User -Pass $Password
+try {
 $headers = @{
     requesttoken = $auth.RequestToken
     Accept = "application/json"
@@ -86,10 +67,13 @@ $createBody = @{
     storage_type = "nextcloud"
 } | ConvertTo-Json -Compress
 
-$createRes = Invoke-WebRequest -Uri "$appBase/share/create" -Method POST `
-    -WebSession $auth.Session -Headers $headers -Body $createBody -UseBasicParsing
+$createRes = Invoke-NcAppWebRequest -Uri "$appBase/share/create" -Method POST `
+    -Headers $headers -Body $createBody -Auth $auth
 $create = $createRes.Content | ConvertFrom-Json
-if (-not $create.success) { throw "create share failed: $($create.error)" }
+if (-not $create.success) {
+    $detail = if ($create.error) { $create.error } else { $createRes.Content }
+    throw "create share failed: $detail"
+}
 $shareId = $create.share_id
 Write-Host "share_id: $shareId"
 
@@ -97,8 +81,7 @@ $buyerId = "e2e_buyer_" + [guid]::NewGuid().ToString("N").Substring(0, 12)
 
 Write-Step "Create Mock payment"
 $payBody = @{ share_id = $shareId; provider_user_id = $buyerId } | ConvertTo-Json -Compress
-$payRes = Invoke-WebRequest -Uri "$appBase/payment/create" -Method POST `
-    -Body $payBody -ContentType "application/json" -UseBasicParsing
+$payRes = Invoke-NcPublicJsonPost -Uri "$appBase/payment/create" -Body $payBody
 $pay = $payRes.Content | ConvertFrom-Json
 if (-not $pay.success) { throw "payment create failed: $($pay.error)" }
 $orderId = $pay.order_id
@@ -106,15 +89,13 @@ Write-Host "order_id: $orderId"
 
 Write-Step "Confirm Mock payment (webhook)"
 $confirmBody = @{ order_id = $orderId; provider_user_id = $buyerId } | ConvertTo-Json -Compress
-$confirmRes = Invoke-WebRequest -Uri "$appBase/payment/webhook" -Method POST `
-    -Body $confirmBody -ContentType "application/json" -UseBasicParsing
+$confirmRes = Invoke-NcPublicJsonPost -Uri "$appBase/payment/webhook" -Body $confirmBody
 $confirm = $confirmRes.Content | ConvertFrom-Json
 if (-not $confirm.success) { throw "payment confirm failed: $($confirm.error)" }
 
 Write-Step "Verify download access"
 $verifyBody = @{ share_id = $shareId; provider_user_id = $buyerId } | ConvertTo-Json -Compress
-$verifyRes = Invoke-WebRequest -Uri "$appBase/payment/verify" -Method POST `
-    -Body $verifyBody -ContentType "application/json" -UseBasicParsing
+$verifyRes = Invoke-NcPublicJsonPost -Uri "$appBase/payment/verify" -Body $verifyBody
 $verify = $verifyRes.Content | ConvertFrom-Json
 if (-not $verify.success -or $verify.code -ne "ACCESS_GRANTED") {
     throw "verify failed: $($verify | ConvertTo-Json -Compress)"
@@ -122,17 +103,21 @@ if (-not $verify.success -or $verify.code -ne "ACCESS_GRANTED") {
 Write-Host "download_url: $($verify.download_url)"
 
 Write-Step "Check has_access"
-$checkRes = Invoke-WebRequest -Uri "$appBase/payment/check/$shareId`?provider_user_id=$buyerId" -UseBasicParsing
-$check = $checkRes.Content | ConvertFrom-Json
+$checkRes = Invoke-NcCurlRequest -Url "$appBase/payment/check/$shareId`?provider_user_id=$buyerId"
+$check = $checkRes | ConvertFrom-Json
 if (-not $check.has_access) { throw "has_access should be true" }
 
 Write-Step "Save to Nextcloud (logged-in user)"
-$saveRes = Invoke-WebRequest -Uri "$appBase/s/$shareId/save-to-cloud" -Method POST `
-    -WebSession $auth.Session -Headers $headers `
-    -Body (@{ provider_user_id = $buyerId } | ConvertTo-Json -Compress) -UseBasicParsing
+$saveRes = Invoke-NcAppWebRequest -Uri "$appBase/s/$shareId/save-to-cloud" -Method POST `
+    -Headers $headers -Body (@{ provider_user_id = $buyerId } | ConvertTo-Json -Compress) -Auth $auth
 $save = $saveRes.Content | ConvertFrom-Json
 if (-not $save.success) { throw "save-to-cloud failed: $($save.error)" }
 Write-Host "saved: $($save.path)"
 
 Write-Host ""
 Write-Host "[F3] PASS: create -> pay -> download -> save-to-cloud" -ForegroundColor Green
+} finally {
+    if ($auth.CookieJar) {
+        Remove-Item -LiteralPath $auth.CookieJar -Force -ErrorAction SilentlyContinue
+    }
+}

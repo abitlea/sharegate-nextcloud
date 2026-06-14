@@ -32,7 +32,7 @@ class Payment extends Entity {
 	protected string $shareId = '';
 	protected string $orderId = '';
 	protected int $amount = 0;
-	protected string $provider = 'mock';
+	protected string $provider = '';
 	protected ?string $providerOrderId = null;
 	protected ?string $clientUserId = null;
 	protected string $status = 'pending';

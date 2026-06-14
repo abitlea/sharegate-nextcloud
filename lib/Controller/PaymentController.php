@@ -83,6 +83,7 @@ class PaymentController extends Controller {
 	}
 
 	/** Mock 支付回调（阶段 2） */
+	#[PublicPage]
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function webhook(): DataResponse {
@@ -144,6 +145,7 @@ class PaymentController extends Controller {
 	}
 
 	/** 模拟支付页 */
+	#[PublicPage]
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function mockPay(string $orderId): TemplateResponse {
