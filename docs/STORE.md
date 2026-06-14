@@ -128,6 +128,7 @@ openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.ke
 - [x] **公开 GitHub 仓库**已创建并更新 `info.xml` 中的 URL
 - [ ] **Nextcloud 签名证书**：PR [#1044](https://github.com/nextcloud/app-certificate-requests/pull/1044) 审核中
 - [x] **5 张截图**已上传 GitHub 并写入 `info.xml`
+- [x] **应用图标** `img/app.svg`（顶栏导航 + 商店列表均从发布包读取此文件）
 - [x] `info.xml` 中 `author mail` 为 `abitlea@126.com`
 - [ ] F2：`occ upgrade`，4 张 `sharegate_*` 表存在
 - [ ] F3：Mock 端到端（`scripts/release/f3-e2e-mock.ps1`）
