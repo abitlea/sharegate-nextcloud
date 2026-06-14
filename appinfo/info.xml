@@ -22,6 +22,11 @@
     <website>https://github.com/abitlea/sharegate-nextcloud</website>
     <bugs>https://github.com/abitlea/sharegate-nextcloud/issues</bugs>
     <repository type="git">https://github.com/abitlea/sharegate-nextcloud.git</repository>
+    <screenshot small-thumbnail="https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/02-paid-shares.png">https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/01-your-shares.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/02-paid-shares.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/03-account.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/04-stats.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/abitlea/sharegate-nextcloud/main/release/screenshots/05-buyer-pay.png</screenshot>
     <dependencies>
         <php min-version="8.2" max-version="8.5"/>
         <nextcloud min-version="28" max-version="33"/>

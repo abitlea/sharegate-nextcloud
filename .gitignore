@@ -4,6 +4,7 @@
 /release/*
 !/release/screenshots/
 !/release/screenshots/README.md
+!/release/screenshots/*.png
 /node_modules/
 /.phpunit.result.cache
 /.phpunit.cache
