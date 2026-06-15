@@ -52,7 +52,8 @@
 			v-if="route.view === 'list'"
 			:open.sync="createOpen"
 			:file-preset="createFile"
-			@created="onShareCreated" />
+			@created="onShareCreated"
+			@open-settings="openSettings" />
 
 		<ShareSettingsSidebar
 			v-if="route.view === 'list'"

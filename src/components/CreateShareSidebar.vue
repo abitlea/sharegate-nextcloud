@@ -40,6 +40,11 @@
 				<p v-if="error" class="warning">
 					{{ error }}
 				</p>
+				<div v-if="existingShareId" class="sg-sidebar-form__actions">
+					<NcButton type="primary" @click="openExistingShare">
+						{{ t('Open existing share', '打开已有分享') }}
+					</NcButton>
+				</div>
 				<p class="sg-sidebar-form__note">
 					{{ t('Note: After creation, please go to the Paid Shares module to modify the share record settings.', '注意：创建后需要到【付费分享】模块修改该分享记录的设置。') }}
 				</p>
@@ -135,11 +140,13 @@ export default {
 			TAB_ID,
 			saving: false,
 			error: '',
+			existingShareId: '',
 			success: false,
 			successUrl: '',
 			successPrice: '',
 			successAccessDays: 0,
 			fileSize: 0,
+			fileId: 0,
 			form: this.emptyForm(),
 		}
 	},
@@ -195,10 +202,12 @@ export default {
 		},
 		applyPreset(preset) {
 			this.error = ''
+			this.existingShareId = ''
 			this.success = false
 			const path = preset?.file_path || ''
 			const name = preset?.file_name || ''
 			this.fileSize = preset?.file_size || 0
+			this.fileId = preset?.file_id || 0
 			this.form = {
 				...this.emptyForm(),
 				file_path: path,
@@ -215,11 +224,13 @@ export default {
 		},
 		resetState() {
 			this.error = ''
+			this.existingShareId = ''
 			this.success = false
 			this.successUrl = ''
 			this.successPrice = ''
 			this.successAccessDays = 0
 			this.fileSize = 0
+			this.fileId = 0
 			this.form = this.emptyForm()
 		},
 		resetForAnother() {
@@ -265,20 +276,25 @@ export default {
 			if (this.fileSize > 0) {
 				body.file_size = this.fileSize
 			}
+			if (this.fileId > 0) {
+				body.file_id = this.fileId
+			}
 			if (expireStr !== '') {
 				body.share_expire_days = parseInt(expireStr, 10)
 			}
 
 			this.saving = true
 			this.error = ''
+			this.existingShareId = ''
 			try {
 				const data = await createShare(body)
 				if (!data.success) {
 					this.error = data.error || this.t('Create failed', '创建失败')
+					this.existingShareId = data.existing_share_id || ''
 					return
 				}
 				const sharePath = data.share_url || ('/apps/sharegate/s/' + data.share_id)
-				this.successUrl = this.buildPublicUrl(sharePath)
+				this.successUrl = buildPublicUrl(sharePath)
 				this.successPrice = (data.price / 100).toFixed(2)
 				this.successAccessDays = data.access_days
 				this.success = true
@@ -288,6 +304,13 @@ export default {
 			} finally {
 				this.saving = false
 			}
+		},
+		openExistingShare() {
+			if (!this.existingShareId) {
+				return
+			}
+			this.$emit('open-settings', this.existingShareId)
+			this.close()
 		},
 		copySuccessUrl() {
 			if (!this.successUrl) {

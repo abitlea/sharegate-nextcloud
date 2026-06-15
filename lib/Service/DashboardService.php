@@ -7,6 +7,7 @@ namespace OCA\ShareGate\Service;
 use OCA\ShareGate\Db\PaymentMapper;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
+use OCA\ShareGate\Util\UserFilePath;
 use OCP\Files\IRootFolder;
 use OCP\IURLGenerator;
 
@@ -36,26 +37,11 @@ class DashboardService {
 	 * @return array<string, int>
 	 */
 	public function getFilterCounts(string $userId): array {
-		$shares = $this->shareMapper->findByUser($userId);
-		$paidCounts = $this->paymentMapper->countPaidByShareIds(
-			array_map(static fn (Share $s) => $s->getShareId(), $shares),
-		);
-
-		$counts = [
+		return [
 			self::FILTER_ALL => $this->publicLinkService->countFiles($userId),
-			self::FILTER_ACTIVE => 0,
+			self::FILTER_ACTIVE => $this->shareMapper->countActiveByUserForList($userId, ''),
 			self::FILTER_STATS => $this->shareStatsService->countForSeller($userId),
 		];
-
-		foreach ($shares as $share) {
-			$paid = $paidCounts[$share->getShareId()] ?? 0;
-
-			if ($this->matchesFilter($share, self::FILTER_ACTIVE, $paid)) {
-				$counts[self::FILTER_ACTIVE]++;
-			}
-		}
-
-		return $counts;
 	}
 
 	/**
@@ -330,7 +316,7 @@ class DashboardService {
 	private function safeFileIdForShare(Share $share): int {
 		try {
 			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getFilePath());
+			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
 			if ($relative === '') {
 				return 0;
 			}
@@ -344,7 +330,7 @@ class DashboardService {
 	private function getFileMTime(Share $share): ?int {
 		try {
 			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getFilePath());
+			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
 			if ($relative === '') {
 				return null;
 			}
@@ -358,7 +344,7 @@ class DashboardService {
 	private function checkFileExists(Share $share): bool {
 		try {
 			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getFilePath());
+			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
 			if ($relative === '') {
 				return false;
 			}
@@ -368,14 +354,8 @@ class DashboardService {
 		}
 	}
 
-	private function relativeUserPath(string $filePath): string {
-		$path = ltrim($filePath, '/');
-		$parts = explode('/', $path);
-		$filesIdx = array_search('files', $parts, true);
-		if ($filesIdx !== false && isset($parts[$filesIdx + 1])) {
-			return implode('/', array_slice($parts, $filesIdx + 2));
-		}
-		return $path;
+	private function relativeUserPath(string $userId, string $filePath): string {
+		return UserFilePath::toUserRelative($userId, $filePath);
 	}
 
 	private function nowMs(): int {

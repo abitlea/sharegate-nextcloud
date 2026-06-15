@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\ShareGate\Service;
 
+use OCA\ShareGate\Util\UserFilePath;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCP\Files\File;
@@ -176,10 +177,16 @@ class PublicLinkService {
 				continue;
 			}
 			$stored = $this->normalizePath($share->getFilePath());
-			$byFull[$stored] = $share;
+			$current = $byFull[$stored] ?? null;
+			if ($current === null || $share->getCreatedAt() > $current->getCreatedAt()) {
+				$byFull[$stored] = $share;
+			}
 			$relative = $this->relativePathFromStored($userId, $share->getFilePath());
 			if ($relative !== '') {
-				$byRelative[$relative] = $share;
+				$relCurrent = $byRelative[$relative] ?? null;
+				if ($relCurrent === null || $share->getCreatedAt() > $relCurrent->getCreatedAt()) {
+					$byRelative[$relative] = $share;
+				}
 			}
 		}
 
@@ -212,14 +219,7 @@ class PublicLinkService {
 	}
 
 	private function relativePathFromStored(string $userId, string $storedPath): string {
-		$path = trim($storedPath, '/');
-		$parts = explode('/', $path);
-		$filesIdx = array_search('files', $parts, true);
-		if ($filesIdx !== false && isset($parts[$filesIdx + 1]) && $parts[$filesIdx + 1] === $userId) {
-			$relative = array_slice($parts, $filesIdx + 2);
-			return $relative === [] ? '' : implode('/', $relative);
-		}
-		return $path;
+		return UserFilePath::toUserRelative($userId, $storedPath);
 	}
 
 	private function normalizePath(string $path): string {

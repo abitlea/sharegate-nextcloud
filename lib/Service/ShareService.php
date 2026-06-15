@@ -7,6 +7,7 @@ namespace OCA\ShareGate\Service;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCP\DB\Exception;
+use OCA\ShareGate\Util\UserFilePath;
 use OCP\Files\File;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
@@ -61,9 +62,19 @@ class ShareService {
 		$accessDays = min(max($accessDays, 1), $maxAccessDays);
 
 		try {
-			$fileInfo = $this->resolveUserFile($userId, $filePath, $fileName);
+			$fileId = isset($data['file_id']) ? (int)$data['file_id'] : null;
+			$fileInfo = $this->resolveUserFile($userId, $filePath, $fileName, $fileId > 0 ? $fileId : null);
 		} catch (\Throwable $e) {
 			return ['success' => false, 'error' => '文件不存在或无权访问: ' . $e->getMessage()];
+		}
+
+		$existing = $this->shareMapper->findActiveByUserAndFilePath($userId, $fileInfo['path']);
+		if ($existing !== null) {
+			return [
+				'success' => false,
+				'error' => '该文件已有付费分享，请直接编辑已有链接，或先取消旧分享后再创建',
+				'existing_share_id' => $existing->getShareId(),
+			];
 		}
 
 		$shareId = $this->generateShareId();
@@ -109,11 +120,30 @@ class ShareService {
 	/**
 	 * @return array{path: string, name: string, size: int}
 	 */
-	private function resolveUserFile(string $userId, string $filePath, string $fileName): array {
+	private function resolveUserFile(string $userId, string $filePath, string $fileName, ?int $fileId = null): array {
 		$userFolder = $this->rootFolder->getUserFolder($userId);
-		$relative = ltrim($filePath, '/');
 
-		// 支持传入完整路径或仅文件名（相对用户根目录）
+		if ($fileId !== null) {
+			try {
+				$nodes = $userFolder->getById($fileId);
+				$node = $nodes[0] ?? null;
+				if ($node instanceof File) {
+					return [
+						'path' => '/' . ltrim($node->getPath(), '/'),
+						'name' => $node->getName(),
+						'size' => $node->getSize(),
+					];
+				}
+			} catch (\Throwable) {
+				// 回退到路径解析
+			}
+		}
+
+		$relative = UserFilePath::toUserRelative($userId, $filePath);
+		if ($relative === '') {
+			$relative = ltrim($filePath, '/');
+		}
+
 		try {
 			$node = $userFolder->get($relative);
 		} catch (NotFoundException $e) {
@@ -250,14 +280,7 @@ class ShareService {
 	}
 
 	private function toUserRelativePath(string $userId, string $storedPath): string {
-		$path = trim($storedPath, '/');
-		$parts = explode('/', $path);
-		$filesIdx = array_search('files', $parts, true);
-		if ($filesIdx !== false && isset($parts[$filesIdx + 1]) && $parts[$filesIdx + 1] === $userId) {
-			$relative = array_slice($parts, $filesIdx + 2);
-			return $relative === [] ? '' : implode('/', $relative);
-		}
-		return $path;
+		return UserFilePath::toUserRelative($userId, $storedPath);
 	}
 
 	/**
