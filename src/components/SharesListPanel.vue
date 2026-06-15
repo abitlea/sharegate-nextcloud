@@ -161,7 +161,7 @@
 										v-if="row.display_status !== 'disabled'"
 										type="tertiary"
 										@click="$emit('disable-share', row.share_id)">
-										{{ t('Cancel share', '取消分享') }}
+										{{ t('Cancel', '取消') }}
 									</NcButton>
 								</td>
 							</template>
@@ -349,7 +349,7 @@ export default {
 					{ key: 'time', label: this.t('Share time', '分享时间') },
 					{ key: 'price', label: this.t('Price (CNY)', '定价') },
 					{ key: 'settings', label: this.t('Paid settings', '付费设置') },
-					{ key: 'actions', label: '' },
+					{ key: 'actions', label: this.t('Cancel share', '取消分享') },
 				]
 			}
 			return [

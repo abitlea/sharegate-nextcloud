@@ -8,12 +8,16 @@ use OCA\ShareGate\Db\PaymentMapper;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCA\ShareGate\Db\ShareStatsMapper;
+use OCA\ShareGate\Util\UserFilePath;
+use OCP\Files\File;
+use OCP\Files\IRootFolder;
 
 class ShareStatsService {
 	public function __construct(
 		private ShareMapper $shareMapper,
 		private ShareStatsMapper $shareStatsMapper,
 		private PaymentMapper $paymentMapper,
+		private IRootFolder $rootFolder,
 	) {
 	}
 
@@ -54,10 +58,14 @@ class ShareStatsService {
 				try {
 					$sid = $share->getShareId();
 					$stats = $statsMap[$sid] ?? null;
+					$fileMeta = $this->fileMetaForShare($share);
 					$items[] = [
 						'share_id' => $sid,
 						'file_name' => $share->getFileName(),
 						'file_path' => $share->getFilePath(),
+						'file_id' => $fileMeta['file_id'],
+						'mime_type' => $fileMeta['mime_type'],
+						'file_mtime' => $fileMeta['file_mtime'],
 						'share_status_label' => $this->shareStatusLabel($share),
 						'created_at' => $share->getCreatedAt(),
 						'price' => $share->getPrice(),
@@ -97,5 +105,28 @@ class ShareStatsService {
 			return 'permanent';
 		}
 		return 'limited';
+	}
+
+	/**
+	 * @return array{file_id: int, mime_type: string, file_mtime: ?int}
+	 */
+	private function fileMetaForShare(Share $share): array {
+		$empty = ['file_id' => 0, 'mime_type' => '', 'file_mtime' => null];
+		try {
+			$userId = $share->getCreatedBy();
+			$userFolder = $this->rootFolder->getUserFolder($userId);
+			$relative = UserFilePath::toUserRelative($userId, $share->getFilePath());
+			if ($relative === '') {
+				return $empty;
+			}
+			$node = $userFolder->get($relative);
+			return [
+				'file_id' => (int)$node->getId(),
+				'mime_type' => $node instanceof File ? $node->getMimeType() : '',
+				'file_mtime' => (int)$node->getMTime() * 1000,
+			];
+		} catch (\Throwable) {
+			return $empty;
+		}
 	}
 }

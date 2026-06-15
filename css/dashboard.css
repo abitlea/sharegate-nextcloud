@@ -483,21 +483,28 @@ tr:focus .sg-actions .button:focus {
 /* ===== Account panel (files-list shell) ===== */
 .sg-account-panel__notice {
     flex: 0 0 auto;
-    margin: 12px 20px 0;
-    max-width: 720px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: min(52rem, calc(100% - 40px));
+    margin: 12px auto 0;
+    padding: 0 20px;
 }
 
 .sg-account-panel__body {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    padding: 16px 20px 24px;
     box-sizing: border-box;
+    width: 100%;
+    max-width: min(52rem, calc(100% - 40px));
+    margin-left: auto;
+    margin-right: auto;
+    padding: 16px 20px 24px;
 }
 
 .sg-account-panel__body .sg-account-form,
 .sg-account-panel__body .sg-account-readonly {
-    max-width: 720px;
+    max-width: none;
 }
 
 .sg-account-panel__body .sg-code {
@@ -511,7 +518,7 @@ tr:focus .sg-actions .button:focus {
 }
 
 .sg-account-form__field {
-    max-width: 560px;
+    max-width: none;
 }
 
 .sg-account-form__label {
@@ -523,7 +530,7 @@ tr:focus .sg-actions .button:focus {
 .sg-account-select {
     display: block;
     width: 100%;
-    max-width: 560px;
+    max-width: none;
     min-height: var(--default-clickable-area, 44px);
     padding: 8px 12px;
     border: 2px solid var(--color-border-maxcontrast, #ddd);
