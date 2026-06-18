@@ -5,16 +5,20 @@
  * @var array $account 来自 getAccountBindingSummary
  * @var \OCP\IL10N $l
  */
-$modeLabel = ($account['payment_mode'] ?? '') === 'alipay_f2f'
-	? $l->t('Alipay Face-to-Face')
-	: $l->t('Mock (development)');
+$mode = (string)($account['payment_mode'] ?? '');
+$modeLabels = [
+	'alipay_f2f' => $l->t('Alipay Face-to-Face'),
+	'stripe' => $l->t('Stripe'),
+	'paypal' => $l->t('PayPal'),
+	'mock' => $l->t('Mock (development)'),
+];
+$modeLabel = $modeLabels[$mode] ?? $mode;
 $bound = !empty($account['alipay_configured'])
 	? $l->t('Bound')
 	: $l->t('Not bound');
 ?>
 <div id="sg-account-readonly" class="sg-account-readonly">
 	<p><strong><?php p($l->t('Payment mode')); ?>:</strong> <?php p($modeLabel); ?></p>
-	<p><strong><?php p($l->t('Effective provider')); ?>:</strong> <?php p($account['effective_provider'] ?? '—'); ?></p>
 	<p><strong><?php p($l->t('Alipay Face-to-Face')); ?>:</strong> <?php p($bound); ?></p>
 	<?php if (!empty($account['alipay_sandbox'])) : ?>
 		<p class="settings-hint"><?php p($l->t('Sandbox mode')); ?></p>

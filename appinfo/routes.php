@@ -18,6 +18,7 @@ return [
 		['name' => 'share#updateShare', 'url' => '/share/{shareId}', 'verb' => 'PUT'],
 
 		['name' => 'share#view', 'url' => '/s/{shareId}', 'verb' => 'GET'],
+		['name' => 'share#fileIcon', 'url' => '/s/{shareId}/icon', 'verb' => 'GET'],
 		['name' => 'share#getShareInfo', 'url' => '/s/{shareId}/info', 'verb' => 'GET'],
 		['name' => 'share#download', 'url' => '/s/{shareId}/verify', 'verb' => 'POST'],
 		['name' => 'share#disable', 'url' => '/share/{shareId}/disable', 'verb' => 'PATCH'],
@@ -33,6 +34,10 @@ return [
 		['name' => 'payment#mockPay', 'url' => '/pay/mock/{orderId}', 'verb' => 'GET'],
 		['name' => 'payment#notifyAlipay', 'url' => '/payment/notify/alipay_f2f', 'verb' => 'POST'],
 		['name' => 'payment#notifyAlipayHealth', 'url' => '/payment/notify/alipay_f2f', 'verb' => 'GET'],
+		['name' => 'payment#notifyStripe', 'url' => '/payment/notify/stripe', 'verb' => 'POST'],
+		['name' => 'payment#notifyStripeHealth', 'url' => '/payment/notify/stripe', 'verb' => 'GET'],
+		['name' => 'payment#notifyPaypal', 'url' => '/payment/notify/paypal', 'verb' => 'POST'],
+		['name' => 'payment#notifyPaypalHealth', 'url' => '/payment/notify/paypal', 'verb' => 'GET'],
 		['name' => 'payment#manualConfirm', 'url' => '/payment/manual-confirm', 'verb' => 'POST'],
 
 		['name' => 'admin#paymentConfig', 'url' => '/admin/payment-config', 'verb' => 'GET'],

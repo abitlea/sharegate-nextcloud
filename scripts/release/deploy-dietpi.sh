@@ -173,8 +173,41 @@ $NC_PHP -r "
       exit(1);
     }
   }
-  echo \"l10n OK\n\";
+  echo \"l10n JSON OK\n\";
 "
+
+step "Generate l10n JS for browser (Util::addTranslations loads *.js, not *.json)"
+if occ l10n:createjs "$APP_ID" 2>/dev/null; then
+  echo "occ l10n:createjs OK"
+else
+  $NC_PHP -r "
+    \$appId = 'sharegate';
+    foreach (glob('$DEST/l10n/*.json') ?: [] as \$jsonFile) {
+      \$lang = basename(\$jsonFile, '.json');
+      \$bundle = json_decode((string)file_get_contents(\$jsonFile), true);
+      if (!is_array(\$bundle['translations'] ?? null)) continue;
+      \$lines = [\"OC.L10N.register(\", \"\\t\" . json_encode(\$appId) . \",\" , \"\\t{\"];
+      \$entries = array_keys(\$bundle['translations']);
+      \$last = count(\$entries) - 1;
+      foreach (\$entries as \$i => \$key) {
+        \$comma = \$i < \$last ? ',' : '';
+        \$lines[] = \"\\t\\t\" . json_encode(\$key) . ' : ' . json_encode(\$bundle['translations'][\$key]) . \$comma;
+      }
+      \$plural = \$bundle['pluralForm'] ?? 'nplurals=2; plural=(n != 1);';
+      \$lines[] = \"\\t},\";
+      \$lines[] = \"\\t\" . json_encode(\$plural) . \");\";
+      \$lines[] = '';
+      file_put_contents('$DEST/l10n/' . \$lang . '.js', implode(\"\\n\", \$lines));
+    }
+    echo \"l10n JS generated\\n\";
+  "
+fi
+for js in "$DEST/l10n/en.js" "$DEST/l10n/zh_CN.js"; do
+  if [[ ! -f "$js" ]]; then
+    echo "ERROR: missing $js — Vue i18n will stay English" >&2
+    exit 1
+  fi
+done
 
 step "PHP syntax check (ShareGate)"
 while IFS= read -r f; do

@@ -2,8 +2,8 @@
 
 ## 版本
 
-- `appinfo/info.xml` → **1.3.2**
-- 发布包：`release/sharegate-1.3.2.tar.gz`（`scripts/release/f1-package.ps1` 生成）
+- `appinfo/info.xml` → **1.3.4**
+- 发布包：`release/sharegate-1.3.4.tar.gz`（`scripts/release/f1-package.ps1` 生成）
 
 ## 上架前置（必做，按顺序）
 
@@ -103,20 +103,20 @@ $key = "$env:USERPROFILE\.nextcloud\certificates\sharegate.key"
 ```powershell
 # 本地
 npm run build
-powershell -File scripts\release\f1-package.ps1 -Version 1.3.2
+powershell -File scripts\release\f1-package.ps1 -Version 1.3.4
 
 # 签名（证书到位后）
-openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.key release\sharegate-1.3.2.tar.gz | openssl base64
+openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.key release\sharegate-1.3.4.tar.gz | openssl base64
 # 复制输出的 base64 作为 Release Signature
 
-# 将 sharegate-1.3.2.tar.gz 上传到 GitHub Releases，得到 HTTPS 下载链接
+# 将 sharegate-1.3.4.tar.gz 上传到 GitHub Releases，得到 HTTPS 下载链接
 ```
 
 在 [上传版本](https://apps.nextcloud.com/developer/apps/releases/new) 填写：
 
-- **Download**：`https://github.com/你的用户/你的仓库/releases/download/v1.3.2/sharegate-1.3.2.tar.gz`
+- **Download**：`https://github.com/abitlea/sharegate-nextcloud/releases/download/v1.3.4/sharegate-1.3.4.tar.gz`
 - **Signature**：上一步 openssl 输出
-- **Changelog**：根目录 `CHANGELOG.md` 会自动被商店读取（已含 1.3.2）
+- **Changelog**：根目录 `CHANGELOG.md` 会自动被商店读取（已含 1.3.4）
 
 可选：安装 [krankerl](https://github.com/nextcloud/krankerl) 后 `krankerl sign --package` + `krankerl publish <url>` 简化签名与登记。
 
@@ -124,7 +124,7 @@ openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.ke
 
 - [x] `composer install --no-dev` 通过
 - [x] `npm run build` 通过
-- [x] 发布包已生成（`release/sharegate-1.3.2.tar.gz`）
+- [ ] 发布包已生成（`release/sharegate-1.3.4.tar.gz`）
 - [x] **公开 GitHub 仓库**已创建并更新 `info.xml` 中的 URL
 - [ ] **Nextcloud 签名证书**：PR [#1044](https://github.com/nextcloud/app-certificate-requests/pull/1044) 审核中
 - [x] **5 张截图**已上传 GitHub 并写入 `info.xml`

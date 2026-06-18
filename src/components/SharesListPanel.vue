@@ -18,27 +18,27 @@
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'all'">
-						{{ t('All types', '全部类型') }}
+						{{ t('All types') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'document'">
-						{{ t('Documents', '文档') }}
+						{{ t('Documents') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'image'">
-						{{ t('Images', '图片') }}
+						{{ t('Images') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'video'">
-						{{ t('Videos', '视频') }}
+						{{ t('Videos') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'audio'">
-						{{ t('Audio', '音频') }}
+						{{ t('Audio') }}
 					</NcActionButton>
 				</NcActions>
 				<NcButton
@@ -62,31 +62,19 @@
 					<NcActionButton
 						:close-after-click="true"
 						@click="shareFilter = 'all'">
-						{{ t('All files', '全部文件') }}
+						{{ t('All files') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="shareFilter = 'shared'">
-						{{ t('Already shared', '已分享') }}
+						{{ t('Already shared') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="shareFilter = 'unshared'">
-						{{ t('Not shared yet', '未分享') }}
+						{{ t('Not shared yet') }}
 					</NcActionButton>
 				</NcActions>
-			</div>
-			<div class="files-list__header-grid-button">
-				<NcButton
-					type="tertiary"
-					:aria-label="viewToggleLabel"
-					:title="viewToggleLabel"
-					@click="toggleViewMode">
-					<template #icon>
-						<ViewGrid v-if="viewMode === 'list'" :size="20" />
-						<ViewList v-else :size="20" />
-					</template>
-				</NcButton>
 			</div>
 		</div>
 
@@ -96,33 +84,7 @@
 			{{ emptyMessage }}
 		</div>
 		<template v-else>
-			<div v-if="viewMode === 'grid'" class="files-list__grid sg-files-grid">
-				<button
-					v-for="row in displayItems"
-					:key="rowKey(row)"
-					type="button"
-					class="files-list__grid-item sg-grid-item"
-					:class="rowClasses(row)"
-					@click="onGridClick(row, $event)"
-					@dblclick="onRowDblClick(row)">
-					<img
-						class="sg-grid-item__icon files-list__row-icon-preview sg-file-icon"
-						:src="fileIconUrl(row)"
-						alt=""
-						aria-hidden="true"
-						loading="lazy" />
-					<span class="sg-grid-item__name" :title="gridItemName(row)">
-						{{ gridItemName(row) }}
-					</span>
-					<span v-if="isPaid" class="sg-grid-item__meta">
-						{{ formatPriceYuan(row.price) }}
-					</span>
-					<span v-else class="sg-grid-item__meta">
-						{{ formatSize(row.file_size || 0) }}
-					</span>
-				</button>
-			</div>
-			<div v-else class="files-filestable">
+			<div class="files-filestable">
 				<table class="files-list__table sg-table">
 					<thead class="files-list__thead">
 						<tr class="files-list__row-head">
@@ -143,50 +105,57 @@
 							@dblclick="onRowDblClick(row)"
 							@keydown.enter.prevent="onRowEnter(row)">
 							<template v-if="isPaid">
-								<FileNameCell :row="row" />
+								<FileNameCell
+									:row="row"
+									activate-mode="settings"
+									@activate="onFileNameActivate" />
 								<td @click.stop>
 									<a href="#" class="action" @click.prevent="copyLink(row.share_url)">
-										{{ t('Copy link', '复制链接') }}
+										{{ t('Copy link') }}
 									</a>
 								</td>
 								<td>{{ formatShareDate(row.created_at) }}</td>
 								<td>{{ formatPriceYuan(row.price) }}</td>
 								<td @click.stop>
-									<NcButton type="tertiary" @click="$emit('open-settings', row.share_id)">
-										{{ t('Edit', '编辑') }}
-									</NcButton>
+									<a
+										href="#"
+										class="action"
+										@click.prevent="$emit('open-settings', row.share_id)">
+										{{ t('Edit') }}
+									</a>
 								</td>
 								<td class="sg-actions" @click.stop>
-									<NcButton
+									<a
 										v-if="row.display_status !== 'disabled'"
-										type="tertiary"
-										@click="$emit('disable-share', row.share_id)">
-										{{ t('Cancel', '取消') }}
-									</NcButton>
+										href="#"
+										class="action"
+										@click.prevent="$emit('disable-share', row.share_id)">
+										{{ t('Cancel') }}
+									</a>
 								</td>
 							</template>
 							<template v-else>
-								<FileNameCell :row="row" />
+								<FileNameCell :row="row" @activate="onFileNameActivate" />
 								<td>{{ formatSize(row.file_size || 0) }}</td>
 								<td>{{ formatRelativeDate(row.file_mtime) }}</td>
 								<td class="sg-paid-share-col" @click.stop>
-									<NcButton
+									<a
 										v-if="row.has_share && row.share_id"
-										type="tertiary"
-										@click="gotoPaid(row.share_id)">
-										{{ t('Already shared', '已分享') }}
-									</NcButton>
-									<NcButton
+										href="#"
+										class="action"
+										@click.prevent="gotoPaid(row.share_id)">
+										{{ t('Already shared') }}
+									</a>
+									<a
 										v-else
-										type="tertiary"
-										:aria-label="t('Add share', '添加分享')"
-										:title="t('Add share', '添加分享')"
-										@click="openCreateForFile(row)">
-										<template #icon>
-											<PlusCircleOutline :size="20" />
-										</template>
-										{{ t('Add share', '添加分享') }}
-									</NcButton>
+										href="#"
+										class="action sg-action-link"
+										:aria-label="t('Add share')"
+										:title="t('Add share')"
+										@click.prevent="openCreateForFile(row)">
+										<PlusCircleOutline :size="16" class="sg-action-link__icon" />
+										{{ t('Add share') }}
+									</a>
 								</td>
 							</template>
 						</tr>
@@ -196,10 +165,10 @@
 			<div v-if="totalPages > 1" class="sg-pagination">
 				<span class="sg-pagination__info">{{ currentPage }}/{{ totalPages }}</span>
 				<NcButton v-if="offset > 0" @click="prevPage">
-					&laquo; {{ t('Previous', '上一页') }}
+					&laquo; {{ t('Previous') }}
 				</NcButton>
 				<NcButton v-if="offset + pageSize < total" @click="nextPage">
-					{{ t('Next', '下一页') }} &raquo;
+					{{ t('Next') }} &raquo;
 				</NcButton>
 			</div>
 		</template>
@@ -207,7 +176,7 @@
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
+import { t } from '../utils/l10n.js'
 import { showTemporary } from '../utils/notify.js'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcActions from '@nextcloud/vue/components/NcActions'
@@ -217,13 +186,11 @@ import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.v
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import AccountCash from 'vue-material-design-icons/AccountCash.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
-import ViewList from 'vue-material-design-icons/ViewList.vue'
 import PlusCircleOutline from 'vue-material-design-icons/PlusCircleOutline.vue'
 import FileNameCell from './FileNameCell.vue'
 import FilesListBreadcrumbs from './FilesListBreadcrumbs.vue'
 import { loadShares } from '../utils/api.js'
-import { fileIconUrlFromRow, openUserFile } from '../utils/files.js'
+import { openUserFile } from '../utils/files.js'
 import { guessMimeFromFileName, mimeCategory } from '../utils/mime.js'
 import { formatSize, formatRelativeDate, formatShareDate, formatPriceYuan, buildPublicUrl } from '../utils/format.js'
 import { setHash } from '../utils/hashRouter.js'
@@ -243,8 +210,6 @@ export default {
 		CalendarMonth,
 		AccountCash,
 		LinkVariant,
-		ViewGrid,
-		ViewList,
 		PlusCircleOutline,
 	},
 	props: {
@@ -266,7 +231,6 @@ export default {
 			typeFilter: 'all',
 			shareFilter: 'all',
 			mtimeSort: 'desc',
-			viewMode: 'list',
 		}
 	},
 	computed: {
@@ -275,40 +239,35 @@ export default {
 		},
 		breadcrumbTitle() {
 			return this.isPaid
-				? this.t('Paid shares', '付费分享')
-				: this.t('Your shares', '你的共享')
+				? this.t('Paid shares')
+				: this.t('Your shares')
 		},
 		breadcrumbIcon() {
 			return this.isPaid ? AccountCash : LinkVariant
 		},
 		typeFilterLabel() {
 			const labels = {
-				all: this.t('Type', '类型'),
-				document: this.t('Documents', '文档'),
-				image: this.t('Images', '图片'),
-				video: this.t('Videos', '视频'),
-				audio: this.t('Audio', '音频'),
-				other: this.t('Other', '其他'),
+				all: this.t('Type'),
+				document: this.t('Documents'),
+				image: this.t('Images'),
+				video: this.t('Videos'),
+				audio: this.t('Audio'),
+				other: this.t('Other'),
 			}
 			return labels[this.typeFilter] || labels.all
 		},
 		shareFilterLabel() {
 			const labels = {
-				all: this.t('Share status', '分享状态'),
-				shared: this.t('Already shared', '已分享'),
-				unshared: this.t('Not shared yet', '未分享'),
+				all: this.t('Share status'),
+				shared: this.t('Already shared'),
+				unshared: this.t('Not shared yet'),
 			}
 			return labels[this.shareFilter] || labels.all
 		},
 		mtimeSortLabel() {
 			return this.mtimeSort === 'asc'
-				? this.t('Modified (oldest first)', '修改日期（从旧到新）')
-				: this.t('Modified', '修改日期')
-		},
-		viewToggleLabel() {
-			return this.viewMode === 'list'
-				? this.t('Switch to grid view', '切换为网格视图')
-				: this.t('Switch to list view', '切换为列表视图')
+				? this.t('Modified (oldest first)')
+				: this.t('Modified')
 		},
 		displayItems() {
 			let list = [...this.items]
@@ -335,28 +294,28 @@ export default {
 		},
 		emptyMessage() {
 			if (this.items.length && !this.displayItems.length) {
-				return this.t('No files match the filter', '没有符合筛选条件的文件')
+				return this.t('No files match the filter')
 			}
 			return this.isPaid
-				? this.t('No paid shares yet', '暂无付费分享，请从「你的共享」添加')
-				: this.t('No shared files yet', '暂无已生成公开链接的文件，请先在「文件」中创建公开链接')
+				? this.t('No paid shares yet')
+				: this.t('No shared files yet')
 		},
 		columns() {
 			if (this.isPaid) {
 				return [
-					{ key: 'name', label: this.t('File name', '名称') },
-					{ key: 'copy', label: this.t('Copy link', '复制链接') },
-					{ key: 'time', label: this.t('Share time', '分享时间') },
-					{ key: 'price', label: this.t('Price (CNY)', '定价') },
-					{ key: 'settings', label: this.t('Paid settings', '付费设置') },
-					{ key: 'actions', label: this.t('Cancel share', '取消分享') },
+					{ key: 'name', label: this.t('File name') },
+					{ key: 'copy', label: this.t('Copy link') },
+					{ key: 'time', label: this.t('Share time') },
+					{ key: 'price', label: this.t('Price (CNY)') },
+					{ key: 'settings', label: this.t('Paid settings') },
+					{ key: 'actions', label: this.t('Cancel share') },
 				]
 			}
 			return [
-				{ key: 'name', label: this.t('File name', '名称') },
-				{ key: 'size', label: this.t('Size', '大小') },
-				{ key: 'modified', label: this.t('Modified', '修改日期') },
-				{ key: 'paid', label: this.t('Paid share', '付费分享') },
+				{ key: 'name', label: this.t('File name') },
+				{ key: 'size', label: this.t('Size') },
+				{ key: 'modified', label: this.t('Modified') },
+				{ key: 'paid', label: this.t('Paid share') },
 			]
 		},
 	},
@@ -378,7 +337,11 @@ export default {
 		},
 	},
 	mounted() {
-		this.restoreViewMode()
+		try {
+			sessionStorage.removeItem('sharegateViewMode')
+		} catch {
+			// ignore
+		}
 		this.applyHighlight()
 		this.reload()
 	},
@@ -387,43 +350,13 @@ export default {
 		formatRelativeDate,
 		formatShareDate,
 		formatPriceYuan,
-		t(key, fallback) {
-			const v = translate('sharegate', key)
-			return v && v !== key ? v : fallback
-		},
+		t,
 		matchesTypeFilter(row) {
 			const cat = mimeCategory(this.rowMime(row))
 			return this.typeFilter === 'other' ? cat === 'other' : cat === this.typeFilter
 		},
-		gridItemName(row) {
-			return row.file_name || row.title || '—'
-		},
 		rowMime(row) {
 			return row.mime_type || guessMimeFromFileName(row.file_name || row.title)
-		},
-		onGridClick(row, event) {
-			this.onRowClick(row, event)
-		},
-		toggleViewMode() {
-			this.viewMode = this.viewMode === 'list' ? 'grid' : 'list'
-			try {
-				sessionStorage.setItem('sharegateViewMode', this.viewMode)
-			} catch {
-				// ignore
-			}
-		},
-		restoreViewMode() {
-			try {
-				const saved = sessionStorage.getItem('sharegateViewMode')
-				if (saved === 'grid' || saved === 'list') {
-					this.viewMode = saved
-				}
-			} catch {
-				// ignore
-			}
-		},
-		fileIconUrl(row) {
-			return fileIconUrlFromRow(row, 64)
 		},
 		rowClasses(row) {
 			const key = this.rowKey(row)
@@ -438,7 +371,8 @@ export default {
 			}
 			this.selectedKey = this.rowKey(row)
 		},
-		onRowDblClick(row) {
+		onFileNameActivate(row) {
+			this.selectedKey = this.rowKey(row)
 			if (this.isPaid) {
 				if (row.share_id) {
 					this.$emit('open-settings', row.share_id)
@@ -447,18 +381,15 @@ export default {
 			}
 			this.openFile(row)
 		},
+		onRowDblClick(row) {
+			this.onFileNameActivate(row)
+		},
 		onRowEnter(row) {
-			if (this.isPaid) {
-				if (row.share_id) {
-					this.$emit('open-settings', row.share_id)
-				}
-				return
-			}
-			this.openFile(row)
+			this.onFileNameActivate(row)
 		},
 		openFile(row) {
 			if (!openUserFile(row)) {
-				showTemporary(this.t('Cannot open file', '无法打开该文件'))
+				showTemporary(this.t('Cannot open file'))
 			}
 		},
 		compareMtime(a, b) {
@@ -503,11 +434,11 @@ export default {
 					this.items = data.items || []
 					this.total = data.total || 0
 				} else {
-					this.loadError = data.error || this.t('Loading failed', '加载失败')
+					this.loadError = data.error || this.t('Loading failed')
 					this.items = []
 				}
 			} catch (e) {
-				this.loadError = this.t('Network error', '网络错误') + ': ' + e.message
+				this.loadError = this.t('Network error') + ': ' + e.message
 				this.items = []
 			} finally {
 				this.loading = false
@@ -550,7 +481,7 @@ export default {
 				return
 			}
 			navigator.clipboard.writeText(fullUrl).catch(() => {})
-			showTemporary(this.t('Link copied', '已复制链接'))
+			showTemporary(this.t('Link copied'))
 		},
 	},
 }

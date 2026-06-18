@@ -1,9 +1,12 @@
 .git/
 .gitignore
+.gitattributes
 .idea/
 .vscode/
+.cursor/
 .phpunit.cache
 .phpunit.result.cache
+.editorconfig
 node_modules/
 release/
 docker/
@@ -14,7 +17,13 @@ composer.phar
 temp_*.py
 frontend/
 src/
+package.json
+package-lock.json
+webpack.config.js
+certificate-request/
 scripts/release/
 scripts/php-dev.ini
 docs/PLAN.md
 docs/DIRECTORY_CHECK.md
+*.tar.gz
+*.zip

@@ -4,35 +4,35 @@
 		:no-toggle="true"
 		:name="sidebarName"
 		:subname="form.file_path"
-		:subtitle="t('File path', '文件路径')"
+		:subtitle="t('File path')"
 		@close="onClose">
 		<template #description>
 			<NcNoteCard type="info">
-				{{ t('Manage paid share settings (price, expiry) in the paid share panel after creation', '需要修改添加后[付费分享]记录，请到[付费分享]模块') }}
+				{{ t('Manage paid share settings (price, expiry) in the paid share panel after creation') }}
 			</NcNoteCard>
 		</template>
 
 		<NcAppSidebarTab
 			:id="TAB_ID"
-			:name="t('Paid share', '付费分享')"
+			:name="t('Paid share')"
 			:order="0">
 			<div v-if="success" class="sg-sidebar-form">
 				<NcNoteCard type="success">
-					{{ t('Share created successfully', '分享创建成功') }}
+					{{ t('Share created successfully') }}
 				</NcNoteCard>
 				<NcTextField
-					:label="t('Share link', '分享链接')"
+					:label="t('Share link')"
 					:readonly="true"
 					:show-trailing-button="false"
 					:value="successUrl" />
 				<div class="sg-sidebar-form__meta">
-					{{ t('Price', '价格') }}: ¥{{ successPrice }} ·
-					{{ t('Access days', '授权') }}: {{ successAccessDays }}
-					{{ t('days', '天') }}
+					{{ t('Price') }}: ¥{{ successPrice }} ·
+					{{ t('Access days') }}: {{ successAccessDays }}
+					{{ t('days') }}
 				</div>
 				<div class="sg-sidebar-form__actions">
 					<NcButton type="primary" @click="copySuccessUrl">
-						{{ t('Copy link', '复制链接') }}
+						{{ t('Copy link') }}
 					</NcButton>
 				</div>
 			</div>
@@ -42,33 +42,33 @@
 				</p>
 				<div v-if="existingShareId" class="sg-sidebar-form__actions">
 					<NcButton type="primary" @click="openExistingShare">
-						{{ t('Open existing share', '打开已有分享') }}
+						{{ t('Open existing share') }}
 					</NcButton>
 				</div>
 				<p class="sg-sidebar-form__note">
-					{{ t('Note: After creation, please go to the Paid Shares module to modify the share record settings.', '注意：创建后需要到【付费分享】模块修改该分享记录的设置。') }}
+					{{ t('Note: After creation, please go to the Paid Shares module to modify the share record settings.') }}
 				</p>
 				<NcTextField
-					:label="t('File path', '文件路径')"
+					:label="t('File path')"
 					:disabled="pathLocked"
 					:show-trailing-button="false"
 					:value.sync="form.file_path"
-					:placeholder="t('e.g. Documents/report.pdf', '例如 Documents/report.pdf')"
+					:placeholder="t('e.g. Documents/report.pdf')"
 					required />
 				<NcTextField
-					:label="t('File name', '文件名')"
+					:label="t('File name')"
 					:disabled="pathLocked"
 					:show-trailing-button="false"
 					:value.sync="form.file_name"
 					required />
 				<NcTextField
-					:label="t('Share title', '分享标题')"
+					:label="t('Share title')"
 					:show-trailing-button="false"
 					:value.sync="form.title"
-					:placeholder="t('e.g. Paid document', '例如：付费文档')"
+					:placeholder="t('e.g. Paid document')"
 					required />
 				<NcTextField
-					:label="t('Price (CNY)', '定价（元）')"
+					:label="t('Price (CNY)')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.priceYuan"
@@ -76,7 +76,7 @@
 					step="0.01"
 					required />
 				<NcTextField
-					:label="t('Access days after payment', '付款后可访问天数')"
+					:label="t('Access days after payment')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.access_days"
@@ -84,22 +84,22 @@
 					:max="365"
 					required />
 				<NcTextField
-					:label="t('Link expiry (days)', '链接有效期（天）')"
+					:label="t('Link expiry (days)')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.share_expire_days"
 					:min="1"
 					:max="3650"
-					:placeholder="t('Leave empty for no expiry', '留空表示不过期')" />
+					:placeholder="t('Leave empty for no expiry')" />
 				<div class="sg-sidebar-form__actions">
 					<NcButton
 						type="primary"
 						native-type="submit"
 						:disabled="saving">
-						{{ t('Create share', '创建分享') }}
+						{{ t('Create share') }}
 					</NcButton>
 					<NcButton :disabled="saving" @click="close">
-						{{ t('Cancel', '取消') }}
+						{{ t('Cancel') }}
 					</NcButton>
 				</div>
 			</form>
@@ -108,7 +108,7 @@
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
+import { t } from '../utils/l10n.js'
 import { showTemporary } from '../utils/notify.js'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
 import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
@@ -167,7 +167,7 @@ export default {
 		},
 		sidebarName() {
 			return this.form.file_name
-				|| this.t('Create paid share', '创建付费分享')
+				|| this.t('Create paid share')
 		},
 	},
 	watch: {
@@ -186,10 +186,7 @@ export default {
 		},
 	},
 	methods: {
-		t(key, fallback) {
-			const v = translate('sharegate', key)
-			return v && v !== key ? v : fallback
-		},
+		t,
 		emptyForm() {
 			return {
 				file_path: '',
@@ -253,15 +250,15 @@ export default {
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
 			if (!filePath || !fileName || !title) {
-				this.error = this.t('Please fill file path, name and title', '请填写文件路径、文件名和分享标题')
+				this.error = this.t('Please fill file path, name and title')
 				return
 			}
 			if (!priceYuan || priceYuan <= 0) {
-				this.error = this.t('Price must be greater than 0', '价格必须大于 0')
+				this.error = this.t('Price must be greater than 0')
 				return
 			}
 			if (!accessDays || accessDays < 1) {
-				this.error = this.t('Access days must be at least 1', '授权天数至少为 1')
+				this.error = this.t('Access days must be at least 1')
 				return
 			}
 
@@ -289,7 +286,7 @@ export default {
 			try {
 				const data = await createShare(body)
 				if (!data.success) {
-					this.error = data.error || this.t('Create failed', '创建失败')
+					this.error = data.error || this.t('Create failed')
 					this.existingShareId = data.existing_share_id || ''
 					return
 				}
@@ -300,7 +297,7 @@ export default {
 				this.success = true
 				this.$emit('created', data)
 			} catch (e) {
-				this.error = this.t('Network error', '网络错误') + ': ' + e.message
+				this.error = this.t('Network error') + ': ' + e.message
 			} finally {
 				this.saving = false
 			}
@@ -317,7 +314,7 @@ export default {
 				return
 			}
 			navigator.clipboard.writeText(this.successUrl).catch(() => {})
-			showTemporary(this.t('Link copied', '已复制链接'))
+			showTemporary(this.t('Link copied'))
 		},
 	},
 }

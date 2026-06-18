@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\ShareGate\Payment;
 
 use OCA\ShareGate\Service\PaymentConfigService;
+use OCP\IL10N;
 
 /**
  * 支付宝当面付 — 移植自 monorepo payments/alipay-f2f（PHP EasySDK）
@@ -14,6 +15,7 @@ class AlipayF2fProvider {
 
 	public function __construct(
 		private PaymentConfigService $configService,
+		private IL10N $l,
 	) {
 	}
 
@@ -29,13 +31,13 @@ class AlipayF2fProvider {
 		if (!class_exists(\Alipay\EasySDK\Kernel\Factory::class)) {
 			return [
 				'success' => false,
-				'error' => '支付宝 EasySDK 未加载，请在 apps/sharegate 目录执行 composer install --no-dev',
+				'error' => $this->l->t('Alipay EasySDK not loaded. Run composer install in apps/sharegate.'),
 			];
 		}
 		if (!$this->configService->isAlipayConfigured()) {
 			return [
 				'success' => false,
-				'error' => '支付宝未配置完整，请在管理台「账户绑定」填写 AppID、应用私钥和支付宝公钥，并选择支付宝当面付',
+				'error' => $this->l->t('Alipay is not fully configured. Set App ID, application private key, and Alipay public key, then select Alipay Face-to-Face.'),
 			];
 		}
 
@@ -45,7 +47,7 @@ class AlipayF2fProvider {
 			$this->applySdkOptions();
 			$amountYuan = number_format($amountCents / 100, 2, '.', '');
 			$result = \Alipay\EasySDK\Kernel\Factory::payment()->faceToFace()->preCreate(
-				$title !== '' ? $title : 'ShareGate 文件下载',
+				$title !== '' ? $title : $this->l->t('ShareGate file download'),
 				$orderId,
 				$amountYuan,
 			);
@@ -60,15 +62,20 @@ class AlipayF2fProvider {
 
 			return [
 				'success' => false,
-				'error' => (string)($result->subMsg ?? $result->msg ?? '支付宝预创建失败'),
+				'error' => (string)($result->subMsg ?? $result->msg ?? $this->l->t('Alipay pre-create failed')),
 			];
 		} catch (\Throwable $e) {
 			$msg = $e->getMessage();
-			if (str_contains($msg, '验签失败')) {
-				$env = ($cfg['sandbox'] ?? true) ? '沙箱' : '生产';
-				$msg .= '。请检查：①「支付宝公钥」须从开放平台复制（不是应用公钥）；② AppID、私钥、公钥均来自同一' . $env . '环境；③ 私钥为 RSA2，与控制台登记的应用公钥配对';
+			if (str_contains($msg, '验签失败') || str_contains(strtolower($msg), 'verify signature')) {
+				$envLabel = ($cfg['sandbox'] ?? true)
+					? $this->l->t('sandbox')
+					: $this->l->t('production');
+				$msg .= ' ' . $this->l->t(
+					'Check: ① Alipay public key from the open platform (not the app public key); ② App ID, private key, and public key from the same %s environment; ③ RSA2 private key matching the registered app public key.',
+					[$envLabel],
+				);
 			}
-			return ['success' => false, 'error' => '支付宝请求异常: ' . $msg];
+			return ['success' => false, 'error' => $this->l->t('Alipay request error: %s', [$msg])];
 		}
 	}
 
@@ -78,24 +85,24 @@ class AlipayF2fProvider {
 	 */
 	public function verifyCallback(array $params): array {
 		if (!$this->isAvailable()) {
-			return ['success' => false, 'error' => '支付宝未配置'];
+			return ['success' => false, 'error' => $this->l->t('Alipay not configured')];
 		}
 
 		try {
 			$this->applySdkOptions();
 			$verified = \Alipay\EasySDK\Kernel\Factory::payment()->common()->verifyNotify($params);
 			if (!$verified) {
-				return ['success' => false, 'error' => '支付宝回调签名验证失败'];
+				return ['success' => false, 'error' => $this->l->t('Alipay callback signature verification failed')];
 			}
 
 			$tradeStatus = (string)($params['trade_status'] ?? '');
 			if (!in_array($tradeStatus, ['TRADE_SUCCESS', 'TRADE_FINISHED'], true)) {
-				return ['success' => false, 'error' => '交易状态不正确: ' . $tradeStatus];
+				return ['success' => false, 'error' => $this->l->t('Invalid trade status: %s', [$tradeStatus])];
 			}
 
 			$orderId = (string)($params['out_trade_no'] ?? '');
 			if ($orderId === '') {
-				return ['success' => false, 'error' => '缺少 out_trade_no'];
+				return ['success' => false, 'error' => $this->l->t('Missing out_trade_no')];
 			}
 
 			return [
@@ -105,7 +112,7 @@ class AlipayF2fProvider {
 				'payer_user_id' => (string)($params['buyer_logon_id'] ?? $params['buyer_id'] ?? 'alipay_user'),
 			];
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => '回调验证异常: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Callback verification error: %s', [$e->getMessage()])];
 		}
 	}
 
@@ -114,14 +121,14 @@ class AlipayF2fProvider {
 	 */
 	public function queryOrder(string $orderId): array {
 		if (!$this->isAvailable()) {
-			return ['success' => false, 'error' => '支付宝未配置'];
+			return ['success' => false, 'error' => $this->l->t('Alipay not configured')];
 		}
 
 		try {
 			$this->applySdkOptions();
 			$result = \Alipay\EasySDK\Kernel\Factory::payment()->common()->query($orderId);
 			if ((string)$result->code !== '10000') {
-				return ['success' => false, 'error' => (string)($result->subMsg ?? $result->msg ?? '查询失败')];
+				return ['success' => false, 'error' => (string)($result->subMsg ?? $result->msg ?? $this->l->t('Query failed'))];
 			}
 
 			$map = [

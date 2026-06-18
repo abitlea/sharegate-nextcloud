@@ -140,25 +140,41 @@
     text-align: right;
 }
 
-.sg-actions .button {
-    opacity: 0.4;
-    margin: 0 2px;
-    padding: 4px 8px;
-    height: auto;
-    min-height: 0;
-    font-size: 0.85em;
+/* 列表行内文字操作 — 常显 + NC 主题链接色 */
+#content.app-sharegate .sg-shares-panel .sg-table a.action {
+    opacity: 1 !important;
+    color: var(--color-primary-element);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
 }
 
-.sg-actions .button:hover,
-.sg-actions .button:focus,
-tr:hover .sg-actions .button,
-tr:focus .sg-actions .button {
-    opacity: 0.85;
+#content.app-sharegate .sg-shares-panel .sg-table a.action:hover,
+#content.app-sharegate .sg-shares-panel .sg-table a.action:focus {
+    color: var(--color-primary-element-hover, var(--color-primary-element));
+    text-decoration: none;
+    opacity: 1 !important;
 }
 
-tr:hover .sg-actions .button:hover,
-tr:focus .sg-actions .button:focus {
-    opacity: 1;
+#content.app-sharegate .sg-shares-panel .sg-table a.action * {
+    cursor: pointer;
+    color: inherit;
+}
+
+#content.app-sharegate .sg-shares-panel a.sg-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    vertical-align: middle;
+}
+
+#content.app-sharegate .sg-shares-panel a.sg-action-link .sg-action-link__icon {
+    flex-shrink: 0;
+    color: inherit;
+}
+
+#content.app-sharegate .sg-shares-panel a.sg-action-link .sg-action-link__icon svg {
+    fill: currentColor;
 }
 
 /* 隐藏 NC 默认侧栏开关（ShareGate 用行内操作打开侧栏） */
@@ -184,6 +200,7 @@ tr:focus .sg-actions .button:focus {
 /* 对齐 apps/files FilesListVirtual.vue */
 .files-list {
     --row-height: 44px;
+    --icon-preview-size: 32px;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -279,38 +296,125 @@ tr:focus .sg-actions .button:focus {
     color: var(--color-text-maxcontrast);
 }
 
-/* File name cell — 非链接，默认箭头光标；双击打开文件 */
-.sg-table td.filename {
-    cursor: default;
+/* File name cell — 对齐 NC FileEntryName（纯文本 + 图标，无按钮背景） */
+#content.app-sharegate .sg-table td.filename {
+    padding: 0;
+    min-width: 10rem;
+    vertical-align: middle;
 }
 
-.sg-file-name {
-    display: inline-flex;
+#content.app-sharegate .sg-table td.filename .files-list__row-name {
+    overflow: hidden;
+    min-width: 0;
+}
+
+#content.app-sharegate button.files-list__row-name-link {
+    display: flex;
     align-items: center;
     gap: 10px;
-    max-width: 100%;
+    width: 100%;
+    height: var(--row-height, 44px);
+    min-width: 0;
+    margin: 0;
+    padding: 0 14px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none;
+    font: inherit;
+    font-weight: normal;
+    line-height: normal;
+    text-align: start;
     color: var(--color-main-text);
-    cursor: default;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.sg-file-name .files-list__row-icon-preview,
-.sg-file-icon {
-    flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
+#content.app-sharegate button.files-list__row-name-link:hover,
+#content.app-sharegate button.files-list__row-name-link:focus,
+#content.app-sharegate button.files-list__row-name-link:active {
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--color-main-text);
+    box-shadow: none !important;
+}
+
+#content.app-sharegate button.files-list__row-name-link .files-list__row-icon-preview-container {
+    flex: 0 0 var(--icon-preview-size, 32px);
+    width: var(--icon-preview-size, 32px);
+    height: var(--icon-preview-size, 32px);
+    overflow: hidden;
     border-radius: var(--border-radius);
+    cursor: pointer;
+}
+
+#content.app-sharegate button.files-list__row-name-link .files-list__row-icon-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+}
+
+#content.app-sharegate button.files-list__row-name-link .files-list__row-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-main-text);
+    font-weight: normal;
+    padding: var(--default-grid-baseline, 4px) calc(2 * var(--default-grid-baseline, 4px));
+    min-width: 0;
+}
+
+#content.app-sharegate button.files-list__row-name-link:focus-visible .files-list__row-name-text {
+    outline: var(--border-width-input-focused, 2px) solid var(--color-main-text);
+    border-radius: var(--border-radius-element, var(--border-radius));
+}
+
+#content.app-sharegate button.files-list__row-name-link:focus:not(:focus-visible) .files-list__row-name-text {
+    outline: none;
+}
+
+#content.app-sharegate .sg-file-name-readonly {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: var(--row-height, 44px);
+    padding: 0 14px;
+    min-width: 0;
+    box-sizing: border-box;
+    color: var(--color-main-text);
+}
+
+#content.app-sharegate .sg-file-name-readonly .files-list__row-icon-preview-container {
+    flex: 0 0 var(--icon-preview-size, 32px);
+    width: var(--icon-preview-size, 32px);
+    height: var(--icon-preview-size, 32px);
+    overflow: hidden;
+    border-radius: var(--border-radius);
+}
+
+#content.app-sharegate .sg-file-name-readonly .files-list__row-icon-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#content.app-sharegate .sg-file-name-readonly .files-list__row-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    font-weight: normal;
 }
 
 .sg-grid-item__icon.files-list__row-icon-preview {
     width: 64px;
     height: 64px;
-}
-
-.sg-file-name__text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* ===== File Table ===== */

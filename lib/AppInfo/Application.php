@@ -21,7 +21,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
-		// No additional global navigation entries are registered here.
+		// App menu: appinfo/info.xml only. In-app nav is Vue NcAppNavigation.
 	}
 
 	public function boot(IBootContext $context): void {

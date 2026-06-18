@@ -12,6 +12,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\AdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
@@ -24,6 +25,7 @@ class AdminController extends Controller {
 		private ShareMapper $shareMapper,
 		private PaymentMapper $paymentMapper,
 		private IURLGenerator $urlGenerator,
+		private IL10N $l,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -38,7 +40,11 @@ class AdminController extends Controller {
 	#[NoCSRFRequired]
 	public function savePaymentConfig(): DataResponse {
 		$body = $this->parseBody();
-		$mode = (string)($body['payment_mode'] ?? PaymentConfigService::MODE_MOCK);
+		$mode = (string)($body['payment_mode'] ?? PaymentConfigService::MODE_ALIPAY_F2F);
+		$configError = $this->paymentConfig->validatePaymentConfigSave($mode, $body);
+		if ($configError !== null) {
+			return new DataResponse(['success' => false, 'error' => $configError], 400);
+		}
 		$this->paymentConfig->setPaymentMode($mode);
 
 		if (isset($body['alipay_f2f']) && is_array($body['alipay_f2f'])) {
@@ -52,9 +58,17 @@ class AdminController extends Controller {
 			]);
 		}
 
+		if (isset($body['stripe']) && is_array($body['stripe'])) {
+			$this->paymentConfig->saveStripeConfig($body['stripe']);
+		}
+
+		if (isset($body['paypal']) && is_array($body['paypal'])) {
+			$this->paymentConfig->savePaypalConfig($body['paypal']);
+		}
+
 		return new DataResponse([
 			'success' => true,
-			'message' => '配置已保存',
+			'message' => $this->l->t('Settings saved'),
 			'summary' => $this->paymentConfig->getAdminSummary(),
 		]);
 	}

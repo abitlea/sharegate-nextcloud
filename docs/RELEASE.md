@@ -269,11 +269,20 @@ powershell -ExecutionPolicy Bypass -File scripts\release\verify-all.ps1 -UseDock
 
 ---
 
+## 国际化（发布必查）
+
+所有版本的用户可见文案须中英双语，详见 [I18N.md](I18N.md)。发布前：
+
+- 在 NC 个人设置中分别用 **English** 与 **简体中文**  smoke-test 管理台与买家页
+- 确认 `info.xml` 含 `lang="en"` / `lang="zh_CN"` 的名称与简介
+
+---
+
 ## F1 — 打包上架
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\release\f1-package.ps1
-# 输出: release/sharegate-1.3.0.tar.gz
+# 输出: release/sharegate-1.3.4.tar.gz
 ```
 
 上架清单：[STORE.md](STORE.md)

@@ -47,10 +47,6 @@
 		if (!summary) {
 			return;
 		}
-		const ep = document.getElementById('sg-effective-provider');
-		if (ep) {
-			ep.textContent = summary.effective_provider || '—';
-		}
 		if (summary.alipay_f2f) {
 			const nu = document.getElementById('sg-notify-url');
 			if (nu && summary.alipay_f2f.notify_url) {

@@ -68,7 +68,13 @@ class ShareService {
 			return ['success' => false, 'error' => '文件不存在或无权访问: ' . $e->getMessage()];
 		}
 
-		$existing = $this->shareMapper->findActiveByUserAndFilePath($userId, $fileInfo['path']);
+		$existing = null;
+		if ($fileInfo['id'] > 0) {
+			$existing = $this->shareMapper->findActiveByUserAndFileId($userId, $fileInfo['id']);
+		}
+		if ($existing === null) {
+			$existing = $this->shareMapper->findActiveByUserAndFilePath($userId, $fileInfo['path']);
+		}
 		if ($existing !== null) {
 			return [
 				'success' => false,
@@ -86,6 +92,7 @@ class ShareService {
 		$share = new Share();
 		$share->setShareId($shareId);
 		$share->setFilePath($fileInfo['path']);
+		$share->setFileId($fileInfo['id']);
 		$share->setFileName($fileInfo['name']);
 		$share->setFileSize($fileInfo['size']);
 		$share->setTitle($title);
@@ -118,7 +125,7 @@ class ShareService {
 	}
 
 	/**
-	 * @return array{path: string, name: string, size: int}
+	 * @return array{path: string, name: string, size: int, id: int}
 	 */
 	private function resolveUserFile(string $userId, string $filePath, string $fileName, ?int $fileId = null): array {
 		$userFolder = $this->rootFolder->getUserFolder($userId);
@@ -132,6 +139,7 @@ class ShareService {
 						'path' => '/' . ltrim($node->getPath(), '/'),
 						'name' => $node->getName(),
 						'size' => $node->getSize(),
+						'id' => (int)$node->getId(),
 					];
 				}
 			} catch (\Throwable) {
@@ -158,6 +166,7 @@ class ShareService {
 			'path' => '/' . ltrim($node->getPath(), '/'),
 			'name' => $node->getName(),
 			'size' => $node->getSize(),
+			'id' => (int)$node->getId(),
 		];
 	}
 
@@ -269,6 +278,7 @@ class ShareService {
 			'share_id' => $shareId,
 			'file_path' => $this->toUserRelativePath($userId, $share->getFilePath()),
 			'file_name' => $share->getFileName(),
+			'file_id' => $share->getFileId(),
 			'title' => $share->getTitle(),
 			'description' => $share->getDescription(),
 			'price' => $share->getPrice(),

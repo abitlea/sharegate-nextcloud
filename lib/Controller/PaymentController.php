@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\TextPlainResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\Util;
@@ -27,6 +28,7 @@ class PaymentController extends Controller {
 		private PaymentService $paymentService,
 		private DownloadService $downloadService,
 		private IURLGenerator $urlGenerator,
+		private IL10N $l,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -53,7 +55,7 @@ class PaymentController extends Controller {
 	public function qrImage(string $orderId) {
 		$svg = $this->paymentService->getQrSvgForOrder($orderId);
 		if ($svg === null) {
-			return new DataResponse(['error' => '二维码不可用'], 404);
+			return new DataResponse(['error' => $this->l->t('Payment QR code unavailable')], 404);
 		}
 		return new SvgImageResponse($svg);
 	}
@@ -64,7 +66,7 @@ class PaymentController extends Controller {
 	public function check(string $shareId): DataResponse {
 		$providerUserId = (string)$this->request->getParam('provider_user_id', '');
 		if ($providerUserId === '') {
-			return new DataResponse(['error' => '缺少 provider_user_id'], 400);
+			return new DataResponse(['error' => $this->l->t('Missing provider_user_id')], 400);
 		}
 		return new DataResponse([
 			'has_access' => $this->paymentService->hasUserPaid($shareId, $providerUserId),
@@ -92,7 +94,7 @@ class PaymentController extends Controller {
 		$providerUserId = (string)($body['provider_user_id'] ?? '');
 
 		if ($orderId === '' || $providerUserId === '') {
-			return new DataResponse(['success' => false, 'error' => '缺少 order_id 或 provider_user_id'], 400);
+			return new DataResponse(['success' => false, 'error' => $this->l->t('Missing order_id or provider_user_id')], 400);
 		}
 
 		$result = $this->paymentService->confirmPayment($orderId, $providerUserId);
@@ -103,8 +105,12 @@ class PaymentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function status(string $orderId): DataResponse {
-		$result = $this->paymentService->queryOrderStatus($orderId);
-		return new DataResponse($result, ($result['success'] ?? false) ? 200 : 404);
+		$paypalToken = trim((string)$this->request->getParam('paypal_token', ''));
+		$result = $this->paymentService->queryOrderStatus(
+			$orderId,
+			$paypalToken !== '' ? $paypalToken : null,
+		);
+		return new DataResponse($result, 200);
 	}
 
 	/** 浏览器探测：GET 返回说明；支付宝异步通知走 POST */
@@ -118,6 +124,56 @@ class PaymentController extends Controller {
 		return new TextPlainResponse(
 			'ShareGate alipay_f2f notify OK. Alipay must POST payment callbacks to this URL.',
 		);
+	}
+
+	/** Stripe webhook health check (GET) */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function notifyStripeHealth(): TextPlainResponse {
+		return new TextPlainResponse(
+			'ShareGate stripe notify OK. Stripe must POST checkout.session.completed webhooks to this URL.',
+		);
+	}
+
+	/** Stripe Checkout webhook */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function notifyStripe(): DataResponse {
+		$payload = file_get_contents('php://input');
+		if (!is_string($payload)) {
+			$payload = '';
+		}
+		$signature = $this->request->getHeader('Stripe-Signature');
+		if (is_array($signature)) {
+			$signature = $signature[0] ?? '';
+		}
+
+		$result = $this->paymentService->handleStripeNotify($payload, (string)$signature);
+		$status = ($result['success'] ?? false) ? 200 : 400;
+		return new DataResponse(['received' => (bool)($result['success'] ?? false)], $status);
+	}
+
+	/** PayPal webhook health check (GET) */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function notifyPaypalHealth(): TextPlainResponse {
+		return new TextPlainResponse(
+			'ShareGate paypal notify OK. PayPal must POST checkout/payment webhooks to this URL.',
+		);
+	}
+
+	/** PayPal Checkout webhook */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function notifyPaypal(): DataResponse {
+		$payload = file_get_contents('php://input');
+		if (!is_string($payload)) {
+			$payload = '';
+		}
+
+		$result = $this->paymentService->handlePaypalNotify($payload, $this->request->getHeaders());
+		$status = ($result['success'] ?? false) ? 200 : 400;
+		return new DataResponse(['received' => (bool)($result['success'] ?? false)], $status);
 	}
 
 	/** 支付宝当面付异步通知 */

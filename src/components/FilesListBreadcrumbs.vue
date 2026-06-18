@@ -5,7 +5,7 @@
 <template>
 	<NcBreadcrumbs
 		data-cy-files-content-breadcrumbs
-		:aria-label="t('Current directory path', '当前文件目录')"
+		:aria-label="t('Current directory path')"
 		class="files-list__breadcrumbs">
 		<NcBreadcrumb
 			:name="title"
@@ -27,7 +27,7 @@
 				<template #icon>
 					<Reload :size="20" />
 				</template>
-				{{ t('Reload content', '重新载入内容') }}
+				{{ t('Reload content') }}
 			</NcActionButton>
 		</NcBreadcrumb>
 	</NcBreadcrumbs>
@@ -72,17 +72,17 @@ export default {
 	},
 	computed: {
 		reloadTitle() {
-			return this.t('Reload current directory', '重新载入当前目录')
+			return this.t('Reload current directory')
 		},
 	},
 	methods: {
-		t(key, fallback) {
+		t(key) {
 			const v = translate('sharegate', key)
 			if (v && v !== key) {
 				return v
 			}
 			const files = translate('files', key)
-			return files && files !== key ? files : fallback
+			return files && files !== key ? files : key
 		},
 		onReload() {
 			this.isMenuOpen = false

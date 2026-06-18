@@ -75,7 +75,7 @@ class PublicLinkService {
 	}
 
 	/**
-	 * @param array{by_full: array<string, Share>, by_relative: array<string, Share>} $shareIndex
+	 * @param array{by_full: array<string, Share>, by_relative: array<string, Share>, by_file_id: array<int, Share>} $shareIndex
 	 * @return list<array<string, mixed>>
 	 */
 	private function collectPublicLinkedFiles(string $userId, array $shareIndex): array {
@@ -160,16 +160,17 @@ class PublicLinkService {
 	}
 
 	/**
-	 * @return array{by_full: array<string, Share>, by_relative: array<string, Share>}
+	 * @return array{by_full: array<string, Share>, by_relative: array<string, Share>, by_file_id: array<int, Share>}
 	 */
 	private function buildShareIndex(string $userId): array {
 		$byFull = [];
 		$byRelative = [];
+		$byFileId = [];
 
 		try {
 			$shares = $this->shareMapper->findByUser($userId);
 		} catch (\Throwable) {
-			return ['by_full' => $byFull, 'by_relative' => $byRelative];
+			return ['by_full' => $byFull, 'by_relative' => $byRelative, 'by_file_id' => $byFileId];
 		}
 
 		foreach ($shares as $share) {
@@ -181,6 +182,13 @@ class PublicLinkService {
 			if ($current === null || $share->getCreatedAt() > $current->getCreatedAt()) {
 				$byFull[$stored] = $share;
 			}
+			$fileId = $share->getFileId();
+			if ($fileId > 0) {
+				$idCurrent = $byFileId[$fileId] ?? null;
+				if ($idCurrent === null || $share->getCreatedAt() > $idCurrent->getCreatedAt()) {
+					$byFileId[$fileId] = $share;
+				}
+			}
 			$relative = $this->relativePathFromStored($userId, $share->getFilePath());
 			if ($relative !== '') {
 				$relCurrent = $byRelative[$relative] ?? null;
@@ -190,13 +198,19 @@ class PublicLinkService {
 			}
 		}
 
-		return ['by_full' => $byFull, 'by_relative' => $byRelative];
+		return ['by_full' => $byFull, 'by_relative' => $byRelative, 'by_file_id' => $byFileId];
 	}
 
 	/**
-	 * @param array{by_full: array<string, Share>, by_relative: array<string, Share>} $index
+	 * @param array{by_full: array<string, Share>, by_relative: array<string, Share>, by_file_id: array<int, Share>} $index
 	 */
 	private function matchShare(string $userId, Node $file, string $relative, array $index): ?Share {
+		if ($file instanceof File) {
+			$fileId = $this->safeFileId($file);
+			if ($fileId > 0 && isset($index['by_file_id'][$fileId])) {
+				return $index['by_file_id'][$fileId];
+			}
+		}
 		$full = $this->normalizePath($file->getPath());
 		if (isset($index['by_full'][$full])) {
 			return $index['by_full'][$full];

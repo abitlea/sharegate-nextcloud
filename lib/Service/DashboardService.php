@@ -7,8 +7,7 @@ namespace OCA\ShareGate\Service;
 use OCA\ShareGate\Db\PaymentMapper;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
-use OCA\ShareGate\Util\UserFilePath;
-use OCP\Files\IRootFolder;
+use OCA\ShareGate\Util\ShareFileResolver;
 use OCP\IURLGenerator;
 
 /**
@@ -27,7 +26,7 @@ class DashboardService {
 		private PaymentMapper $paymentMapper,
 		private PaymentConfigService $paymentConfig,
 		private IURLGenerator $urlGenerator,
-		private IRootFolder $rootFolder,
+		private ShareFileResolver $shareFileResolver,
 		private PublicLinkService $publicLinkService,
 		private ShareStatsService $shareStatsService,
 	) {
@@ -104,7 +103,13 @@ class DashboardService {
 		$binding = [
 			'payment_mode' => $mode,
 			'effective_provider' => $summary['effective_provider'],
+			'effective_provider_label' => $summary['effective_provider_label'] ?? $summary['effective_provider'],
+			'payment_flow' => $summary['payment_flow'] ?? 'qrcode',
+			'display_currency' => $summary['display_currency'] ?? 'CNY',
+			'providers' => $summary['providers'] ?? [],
 			'alipay_configured' => $alipay['configured'] && $alipay['alipay_public_key'] !== '',
+			'stripe_configured' => ($summary['stripe']['configured'] ?? false),
+			'paypal_configured' => ($summary['paypal']['configured'] ?? false),
 			'alipay_sandbox' => $alipay['sandbox'],
 			'notify_url' => $alipay['notify_url'],
 			'is_admin' => $isAdmin,
@@ -257,7 +262,9 @@ class DashboardService {
 			'file_name' => $this->safeText($share->getFileName()),
 			'file_mtime' => null,
 			'file_path' => $filePath,
-			'file_id' => $this->safeFileIdForShare($share),
+			'file_id' => $share->getFileId() > 0
+				? $share->getFileId()
+				: $this->safeFileIdForShare($share),
 			'folder' => $this->extractFolder($filePath),
 			'price' => $share->getPrice(),
 			'status' => $share->getStatus(),
@@ -314,48 +321,29 @@ class DashboardService {
 	}
 
 	private function safeFileIdForShare(Share $share): int {
-		try {
-			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
-			if ($relative === '') {
-				return 0;
-			}
-			$node = $userFolder->get($relative);
-			return (int)$node->getId();
-		} catch (\Throwable) {
-			return 0;
+		if ($share->getFileId() > 0) {
+			return $share->getFileId();
 		}
+
+		$file = $this->shareFileResolver->tryResolve($share);
+		return $file !== null ? (int)$file->getId() : 0;
 	}
 
 	private function getFileMTime(Share $share): ?int {
+		$file = $this->shareFileResolver->tryResolve($share);
+		if ($file === null) {
+			return null;
+		}
+
 		try {
-			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
-			if ($relative === '') {
-				return null;
-			}
-			$node = $userFolder->get($relative);
-			return (int)$node->getMTime() * 1000;
-		} catch (\Throwable $e) {
+			return (int)$file->getMTime() * 1000;
+		} catch (\Throwable) {
 			return null;
 		}
 	}
 
 	private function checkFileExists(Share $share): bool {
-		try {
-			$userFolder = $this->rootFolder->getUserFolder($share->getCreatedBy());
-			$relative = $this->relativeUserPath($share->getCreatedBy(), $share->getFilePath());
-			if ($relative === '') {
-				return false;
-			}
-			return $userFolder->nodeExists($relative);
-		} catch (\Throwable $e) {
-			return false;
-		}
-	}
-
-	private function relativeUserPath(string $userId, string $filePath): string {
-		return UserFilePath::toUserRelative($userId, $filePath);
+		return $this->shareFileResolver->tryResolve($share) !== null;
 	}
 
 	private function nowMs(): int {

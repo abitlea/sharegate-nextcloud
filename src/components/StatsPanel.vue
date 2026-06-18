@@ -18,27 +18,27 @@
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'all'">
-						{{ t('All types', '全部类型') }}
+						{{ t('All types') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'document'">
-						{{ t('Documents', '文档') }}
+						{{ t('Documents') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'image'">
-						{{ t('Images', '图片') }}
+						{{ t('Images') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'video'">
-						{{ t('Videos', '视频') }}
+						{{ t('Videos') }}
 					</NcActionButton>
 					<NcActionButton
 						:close-after-click="true"
 						@click="typeFilter = 'audio'">
-						{{ t('Audio', '音频') }}
+						{{ t('Audio') }}
 					</NcActionButton>
 				</NcActions>
 				<NcButton
@@ -72,7 +72,7 @@
 						v-for="row in displayItems"
 						:key="row.share_id || row.file_name"
 						class="files-list__row">
-						<FileNameCell :row="row" />
+						<FileNameCell :row="row" @activate="openFile" />
 						<td>{{ shareStatusLabel(row.share_status_label) }}</td>
 						<td>{{ formatShareDate(row.created_at) }}</td>
 						<td>{{ formatPriceYuan(row.price) }}</td>
@@ -88,7 +88,7 @@
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
+import { t } from '../utils/l10n.js'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -99,6 +99,8 @@ import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.v
 import FileNameCell from './FileNameCell.vue'
 import FilesListBreadcrumbs from './FilesListBreadcrumbs.vue'
 import { loadStats } from '../utils/api.js'
+import { openUserFile } from '../utils/files.js'
+import { showTemporary } from '../utils/notify.js'
 import { formatShareDate, formatPriceYuan } from '../utils/format.js'
 import { guessMimeFromFileName, mimeCategory } from '../utils/mime.js'
 
@@ -132,26 +134,26 @@ export default {
 	},
 	computed: {
 		breadcrumbTitle() {
-			return this.t('Statistics', '收益查看')
+			return this.t('Statistics')
 		},
 		breadcrumbIcon() {
 			return ChartDonut
 		},
 		typeFilterLabel() {
 			const labels = {
-				all: this.t('Type', '类型'),
-				document: this.t('Documents', '文档'),
-				image: this.t('Images', '图片'),
-				video: this.t('Videos', '视频'),
-				audio: this.t('Audio', '音频'),
-				other: this.t('Other', '其他'),
+				all: this.t('Type'),
+				document: this.t('Documents'),
+				image: this.t('Images'),
+				video: this.t('Videos'),
+				audio: this.t('Audio'),
+				other: this.t('Other'),
 			}
 			return labels[this.typeFilter] || labels.all
 		},
 		shareTimeSortLabel() {
 			return this.shareTimeSort === 'asc'
-				? this.t('Share time (oldest first)', '分享时间（从旧到新）')
-				: this.t('Share time', '分享时间')
+				? this.t('Share time (oldest first)')
+				: this.t('Share time')
 		},
 		displayItems() {
 			let list = [...this.items]
@@ -167,20 +169,20 @@ export default {
 		},
 		emptyMessage() {
 			if (this.items.length && !this.displayItems.length) {
-				return this.t('No statistics match the filter', '没有符合筛选条件的收益记录')
+				return this.t('No statistics match the filter')
 			}
-			return this.t('No statistics yet', '暂无收益数据')
+			return this.t('No statistics yet')
 		},
 		columns() {
 			return [
-				{ key: 'name', label: this.t('File', '文件') },
-				{ key: 'status', label: this.t('Share status', '分享状态') },
-				{ key: 'time', label: this.t('Share time', '分享时间') },
-				{ key: 'price', label: this.t('Price (yuan)', '定价（元）') },
-				{ key: 'revenue', label: this.t('Revenue (yuan)', '收益（元）') },
-				{ key: 'preview', label: this.t('Preview count', '预览次数') },
-				{ key: 'save', label: this.t('Save to cloud count', '转存次数') },
-				{ key: 'download', label: this.t('Download count', '下载次数') },
+				{ key: 'name', label: this.t('File') },
+				{ key: 'status', label: this.t('Share status') },
+				{ key: 'time', label: this.t('Share time') },
+				{ key: 'price', label: this.t('Price (yuan)') },
+				{ key: 'revenue', label: this.t('Revenue (yuan)') },
+				{ key: 'preview', label: this.t('Preview count') },
+				{ key: 'save', label: this.t('Save to cloud count') },
+				{ key: 'download', label: this.t('Download count') },
 			]
 		},
 	},
@@ -190,10 +192,7 @@ export default {
 	methods: {
 		formatShareDate,
 		formatPriceYuan,
-		t(key, fallback) {
-			const v = translate('sharegate', key)
-			return v && v !== key ? v : fallback
-		},
+		t,
 		rowMime(row) {
 			return row.mime_type || guessMimeFromFileName(row.file_name)
 		},
@@ -221,12 +220,17 @@ export default {
 		},
 		shareStatusLabel(key) {
 			const map = {
-				permanent: this.t('Permanent share', '永久分享'),
-				limited: this.t('Limited-time share', '限期分享'),
-				expired: this.t('Expired', '已过期'),
-				disabled: this.t('Disabled', '已停用'),
+				permanent: this.t('Permanent share'),
+				limited: this.t('Limited-time share'),
+				expired: this.t('Expired'),
+				disabled: this.t('Disabled'),
 			}
 			return map[key] || key || '—'
+		},
+		openFile(row) {
+			if (!openUserFile(row)) {
+				showTemporary(this.t('Cannot open file'))
+			}
 		},
 		async reload() {
 			this.loading = true
@@ -234,13 +238,13 @@ export default {
 			try {
 				const data = await loadStats()
 				if (!data?.success || !data.items) {
-					this.loadError = data?.error || this.t('Loading failed', '加载失败')
+					this.loadError = data?.error || this.t('Loading failed')
 					this.items = []
 					return
 				}
 				this.items = data.items
 			} catch (e) {
-				this.loadError = this.t('Network error', '网络错误') + ': ' + e.message
+				this.loadError = this.t('Network error') + ': ' + e.message
 				this.items = []
 			} finally {
 				this.loading = false

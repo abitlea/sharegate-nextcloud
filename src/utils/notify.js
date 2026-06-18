@@ -1,6 +1,10 @@
 export function showTemporary(message) {
-	if (typeof OC !== 'undefined' && OC.Notification) {
+	if (typeof OC !== 'undefined' && OC.Notification?.showTemporary) {
 		OC.Notification.showTemporary(message)
+		return
+	}
+	if (typeof window !== 'undefined' && window.OC?.Notification?.showTemporary) {
+		window.OC.Notification.showTemporary(message)
 	}
 }
 

@@ -30,6 +30,8 @@ class Admin implements ISettings {
 			'payment_mode' => $summary['payment_mode'],
 			'effective_provider' => $summary['effective_provider'],
 			'alipay' => $summary['alipay_f2f'],
+			'mock_selectable' => $summary['mock_selectable'],
+			'mock_production_warning' => $summary['mock_production_warning'],
 			'save_url' => $this->urlGenerator->linkToRoute('sharegate.admin.savePaymentConfig'),
 			'config_url' => $this->urlGenerator->linkToRoute('sharegate.admin.paymentConfig'),
 			'csp_nonce' => CspNonce::get(),

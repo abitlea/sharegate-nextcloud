@@ -4,24 +4,24 @@
 		:no-toggle="true"
 		:name="sidebarName"
 		:subname="form.file_path"
-		:subtitle="t('File path', '文件路径')"
+		:subtitle="t('File path')"
 		@close="onClose">
 		<template #description>
 			<NcNoteCard type="info">
-				{{ t('Configure price and access for this paid share link. The file cannot be changed here.', '在此配置付费分享的价格与访问权限，无法更换文件。') }}
+				{{ t('Configure price and access for this paid share link. The file cannot be changed here.') }}
 			</NcNoteCard>
 		</template>
 
 		<NcAppSidebarTab
 			:id="TAB_ID"
-			:name="t('Paid share settings', '付费分享设置')"
+			:name="t('Paid share settings')"
 			:order="0">
 			<NcLoadingIcon v-if="loading" class="sg-sidebar__loading" :size="32" />
 			<div v-else-if="loadError" class="sg-sidebar-form">
 				<p class="warning">{{ loadError }}</p>
 				<div class="sg-sidebar-form__actions">
 					<NcButton @click="close">
-						{{ t('Close', '关闭') }}
+						{{ t('Close') }}
 					</NcButton>
 				</div>
 			</div>
@@ -30,22 +30,22 @@
 					{{ error }}
 				</p>
 				<NcTextField
-					:label="t('File path', '文件路径')"
+					:label="t('File path')"
 					:readonly="true"
 					:show-trailing-button="false"
 					:value="form.file_path" />
 				<NcTextField
-					:label="t('File name', '文件名')"
+					:label="t('File name')"
 					:readonly="true"
 					:show-trailing-button="false"
 					:value="form.file_name" />
 				<NcTextField
-					:label="t('Share title', '分享标题')"
+					:label="t('Share title')"
 					:show-trailing-button="false"
 					:value.sync="form.title"
 					required />
 				<NcTextField
-					:label="t('Price (CNY)', '定价（元）')"
+					:label="t('Price (CNY)')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.priceYuan"
@@ -53,7 +53,7 @@
 					step="0.01"
 					required />
 				<NcTextField
-					:label="t('Access days after payment', '付款后可访问天数')"
+					:label="t('Access days after payment')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.access_days"
@@ -61,15 +61,15 @@
 					:max="365"
 					required />
 				<NcTextField
-					:label="t('Link expiry (days)', '链接有效期（天）')"
+					:label="t('Link expiry (days)')"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.share_expire_days"
 					:min="1"
 					:max="3650"
-					:placeholder="t('Leave empty for no expiry', '留空表示不过期')" />
+					:placeholder="t('Leave empty for no expiry')" />
 				<NcTextField
-					:label="t('Public share link', '公开分享链接')"
+					:label="t('Public share link')"
 					:readonly="true"
 					:show-trailing-button="false"
 					:value="form.share_url" />
@@ -78,10 +78,10 @@
 						type="primary"
 						native-type="submit"
 						:disabled="saving">
-						{{ t('Save settings', '保存设置') }}
+						{{ t('Save settings') }}
 					</NcButton>
 					<NcButton :disabled="saving" @click="close">
-						{{ t('Cancel', '取消') }}
+						{{ t('Cancel') }}
 					</NcButton>
 				</div>
 			</form>
@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
+import { t } from '../utils/l10n.js'
 import { showTemporary } from '../utils/notify.js'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
 import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
@@ -142,7 +142,7 @@ export default {
 		sidebarName() {
 			return this.form.file_name
 				|| this.form.title
-				|| this.t('Paid share settings', '付费分享设置')
+				|| this.t('Paid share settings')
 		},
 	},
 	watch: {
@@ -158,10 +158,7 @@ export default {
 		},
 	},
 	methods: {
-		t(key, fallback) {
-			const v = translate('sharegate', key)
-			return v && v !== key ? v : fallback
-		},
+		t,
 		emptyForm() {
 			return {
 				file_path: '',
@@ -193,7 +190,7 @@ export default {
 			try {
 				const data = await getShareSettings(this.shareId)
 				if (!data.success || !data.share) {
-					this.loadError = data.error || this.t('Loading failed', '加载失败')
+					this.loadError = data.error || this.t('Loading failed')
 					return
 				}
 				const share = data.share
@@ -207,7 +204,7 @@ export default {
 					share_url: share.share_url || '',
 				}
 			} catch (e) {
-				this.loadError = this.t('Network error', '网络错误') + ': ' + e.message
+				this.loadError = this.t('Network error') + ': ' + e.message
 			} finally {
 				this.loading = false
 			}
@@ -219,15 +216,15 @@ export default {
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
 			if (!title) {
-				this.error = this.t('Please enter a share title', '请填写分享标题')
+				this.error = this.t('Please enter a share title')
 				return
 			}
 			if (!priceYuan || priceYuan <= 0) {
-				this.error = this.t('Price must be greater than 0', '价格必须大于 0')
+				this.error = this.t('Price must be greater than 0')
 				return
 			}
 			if (!accessDays || accessDays < 1) {
-				this.error = this.t('Access days must be at least 1', '授权天数至少为 1')
+				this.error = this.t('Access days must be at least 1')
 				return
 			}
 
@@ -243,14 +240,14 @@ export default {
 			try {
 				const data = await updateShareSettings(this.shareId, body)
 				if (data.success) {
-					showTemporary(this.t('Settings saved', '设置已保存'))
+					showTemporary(this.t('Settings saved'))
 					this.$emit('saved')
 					this.close()
 				} else {
-					this.error = data.error || this.t('Save failed', '保存失败')
+					this.error = data.error || this.t('Save failed')
 				}
 			} catch (e) {
-				this.error = this.t('Network error', '网络错误') + ': ' + e.message
+				this.error = this.t('Network error') + ': ' + e.message
 			} finally {
 				this.saving = false
 			}

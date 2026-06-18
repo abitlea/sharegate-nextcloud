@@ -12,9 +12,12 @@ use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCA\ShareGate\Payment\AlipayF2fProvider;
 use OCA\ShareGate\Payment\MockPaymentProvider;
+use OCA\ShareGate\Payment\PayPalProvider;
+use OCA\ShareGate\Payment\StripeProvider;
 use OCA\ShareGate\Util\QrCodeRenderer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\DB\Exception;
+use OCP\IL10N;
 
 /**
  * 对应 monorepo PaymentManager
@@ -26,8 +29,11 @@ class PaymentService {
 		private AccessGrantMapper $accessGrantMapper,
 		private MockPaymentProvider $mockProvider,
 		private AlipayF2fProvider $alipayProvider,
+		private StripeProvider $stripeProvider,
+		private PayPalProvider $paypalProvider,
 		private PaymentConfigService $paymentConfig,
 		private QrCodeRenderer $qrCodeRenderer,
+		private IL10N $l,
 	) {
 	}
 
@@ -44,21 +50,21 @@ class PaymentService {
 		$providerUserId = trim((string)($data['provider_user_id'] ?? $data['client_user_id'] ?? ''));
 
 		if ($shareId === '') {
-			return ['success' => false, 'error' => '缺少 share_id'];
+			return ['success' => false, 'error' => $this->l->t('Missing share_id')];
 		}
 
 		try {
 			$share = $this->shareMapper->findByShareId($shareId);
 		} catch (DoesNotExistException) {
-			return ['success' => false, 'error' => '分享链接不存在'];
+			return ['success' => false, 'error' => $this->l->t('Share link not found')];
 		}
 
 		if ($this->isShareExpired($share->getExpireAt())) {
-			return ['success' => false, 'error' => '分享已过期'];
+			return ['success' => false, 'error' => $this->l->t('Share expired')];
 		}
 
 		if ($providerUserId !== '' && $this->hasUserPaid($shareId, $providerUserId)) {
-			return ['success' => true, 'already_paid' => true, 'message' => '已购买过'];
+			return ['success' => true, 'already_paid' => true, 'message' => $this->l->t('Already purchased')];
 		}
 
 		$orderId = $this->generateOrderId();
@@ -68,6 +74,7 @@ class PaymentService {
 		$qrCode = null;
 		$paymentUrl = null;
 		$providerOrderId = null;
+		$paymentFlow = 'qrcode';
 
 		if ($provider === AlipayF2fProvider::NAME) {
 			$alipayResult = $this->alipayProvider->createPayment(
@@ -80,6 +87,32 @@ class PaymentService {
 			}
 			$qrCode = $alipayResult['qr_code'];
 			$providerOrderId = $alipayResult['provider_order_id'] ?? null;
+		} elseif ($provider === StripeProvider::NAME) {
+			$stripeResult = $this->stripeProvider->createCheckoutSession(
+				$orderId,
+				$shareId,
+				$share->getTitle(),
+				$share->getPrice(),
+			);
+			if (!($stripeResult['success'] ?? false)) {
+				return $stripeResult;
+			}
+			$paymentUrl = $stripeResult['payment_url'];
+			$providerOrderId = $stripeResult['session_id'];
+			$paymentFlow = 'redirect';
+		} elseif ($provider === PayPalProvider::NAME) {
+			$paypalResult = $this->paypalProvider->createCheckoutOrder(
+				$orderId,
+				$shareId,
+				$share->getTitle(),
+				$share->getPrice(),
+			);
+			if (!($paypalResult['success'] ?? false)) {
+				return $paypalResult;
+			}
+			$paymentUrl = $paypalResult['payment_url'];
+			$providerOrderId = $paypalResult['order_id'];
+			$paymentFlow = 'redirect';
 		} else {
 			$paymentUrl = $this->mockProvider->createPaymentUrl($orderId, $buyerId);
 			$qrCode = $paymentUrl;
@@ -103,25 +136,30 @@ class PaymentService {
 		try {
 			$this->paymentMapper->insert($payment);
 		} catch (Exception $e) {
-			return ['success' => false, 'error' => '创建订单失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Failed to create order: %s', [$e->getMessage()])];
 		}
 
 		$response = [
 			'success' => true,
 			'order_id' => $orderId,
 			'provider' => $provider,
-			'qr_code' => $qrCode,
+			'payment_flow' => $paymentFlow,
 		];
+		if ($qrCode !== null && $qrCode !== '') {
+			$response['qr_code'] = $qrCode;
+		}
 		if ($paymentUrl !== null) {
 			$response['payment_url'] = $paymentUrl;
 		}
-		$qrImage = $this->qrCodeRenderer->toDataUri((string)$qrCode);
-		if ($qrImage !== null) {
-			$response['qr_image'] = $qrImage;
-		}
-		$qrSvg = $this->qrCodeRenderer->toRawSvg((string)$qrCode);
-		if ($qrSvg !== null) {
-			$response['qr_svg'] = $qrSvg;
+		if ($qrCode !== null && $qrCode !== '' && $paymentFlow === 'qrcode') {
+			$qrImage = $this->qrCodeRenderer->toDataUri((string)$qrCode);
+			if ($qrImage !== null) {
+				$response['qr_image'] = $qrImage;
+			}
+			$qrSvg = $this->qrCodeRenderer->toRawSvg((string)$qrCode);
+			if ($qrSvg !== null) {
+				$response['qr_svg'] = $qrSvg;
+			}
 		}
 		return $response;
 	}
@@ -146,12 +184,12 @@ class PaymentService {
 		try {
 			$payment = $this->paymentMapper->findByOrderId($orderId);
 		} catch (DoesNotExistException) {
-			return ['success' => false, 'error' => '订单不存在'];
+			return ['success' => false, 'error' => $this->l->t('Order not found')];
 		}
 
 		if ($payment->getStatus() === 'paid') {
 			$this->ensureAccessGrant($payment);
-			return ['success' => true, 'message' => '订单已支付'];
+			return ['success' => true, 'message' => $this->l->t('Order already paid')];
 		}
 
 		$grantUserId = trim((string)($payment->getClientUserId() ?? ''));
@@ -162,7 +200,7 @@ class PaymentService {
 		try {
 			$share = $this->shareMapper->findByShareId($payment->getShareId());
 		} catch (DoesNotExistException) {
-			return ['success' => false, 'error' => '分享不存在'];
+			return ['success' => false, 'error' => $this->l->t('Share not found')];
 		}
 
 		$now = (int)(microtime(true) * 1000);
@@ -173,18 +211,18 @@ class PaymentService {
 		try {
 			$this->paymentMapper->update($payment);
 		} catch (Exception $e) {
-			return ['success' => false, 'error' => '更新订单失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Failed to update order: %s', [$e->getMessage()])];
 		}
 
 		try {
 			$this->insertAccessGrant($payment, $share, $grantUserId, $now);
 		} catch (Exception $e) {
-			return ['success' => false, 'error' => '创建授权失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Failed to create access grant: %s', [$e->getMessage()])];
 		}
 
 		return [
 			'success' => true,
-			'message' => '支付成功',
+			'message' => $this->l->t('Payment successful'),
 		];
 	}
 
@@ -205,6 +243,52 @@ class PaymentService {
 		);
 	}
 
+	public function handleStripeNotify(string $payload, string $signatureHeader): array {
+		$verify = $this->stripeProvider->verifyWebhook($payload, $signatureHeader);
+		if (!($verify['success'] ?? false)) {
+			if (($verify['error'] ?? '') === 'ignored') {
+				return ['success' => true, 'ignored' => true];
+			}
+			return $verify;
+		}
+
+		return $this->confirmPayment(
+			$verify['order_id'],
+			$verify['payer_user_id'],
+			$verify['provider_order_id'],
+		);
+	}
+
+	public function handlePaypalNotify(string $payload, array $headers): array {
+		if (!$this->paypalProvider->verifyWebhook($payload, $headers)) {
+			// Allow processing when webhook ID is not configured (rely on API capture on return).
+			$cfg = $this->paymentConfig->getPaypalConfig();
+			if ($cfg['webhook_id'] !== '') {
+				return ['success' => false, 'error' => $this->l->t('PayPal webhook signature verification failed')];
+			}
+		}
+
+		/** @var array<string, mixed>|null $event */
+		$event = json_decode($payload, true);
+		if (!is_array($event)) {
+			return ['success' => false, 'error' => $this->l->t('Invalid PayPal webhook payload')];
+		}
+
+		$result = $this->paypalProvider->handleWebhookEvent($event);
+		if (!($result['success'] ?? false)) {
+			if (($result['error'] ?? '') === 'ignored') {
+				return ['success' => true, 'ignored' => true];
+			}
+			return $result;
+		}
+
+		return $this->confirmPayment(
+			$result['order_id'],
+			$result['payer_user_id'],
+			$result['provider_order_id'],
+		);
+	}
+
 	public function hasUserPaid(string $shareId, string $providerUserId): bool {
 		try {
 			if ($this->accessGrantMapper->hasActiveGrant($shareId, $providerUserId)) {
@@ -220,14 +304,19 @@ class PaymentService {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function queryOrderStatus(string $orderId): array {
+	public function queryOrderStatus(string $orderId, ?string $paypalToken = null): array {
 		try {
 			$payment = $this->paymentMapper->findByOrderId($orderId);
 		} catch (DoesNotExistException) {
-			return ['success' => false, 'error' => '订单不存在'];
+			return ['success' => false, 'error' => $this->l->t('Order not found')];
 		}
 
 		if ($payment->getStatus() === 'paid') {
+			$this->confirmPayment(
+				$orderId,
+				(string)($payment->getClientUserId() ?? 'paypal_user'),
+				(string)($payment->getProviderOrderId() ?? ''),
+			);
 			return ['success' => true, 'status' => 'paid'];
 		}
 
@@ -243,6 +332,59 @@ class PaymentService {
 			}
 			if ($query['success'] ?? false) {
 				return ['success' => true, 'status' => $query['status'] ?? 'pending'];
+			}
+		}
+
+		if ($payment->getProvider() === StripeProvider::NAME) {
+			$sessionId = (string)($payment->getProviderOrderId() ?? '');
+			if ($sessionId !== '') {
+				$query = $this->stripeProvider->querySession($sessionId);
+				if (($query['success'] ?? false) && ($query['status'] ?? '') === 'paid') {
+					$this->confirmPayment(
+						$orderId,
+						(string)($query['payer_user_id'] ?? $payment->getClientUserId() ?? 'stripe_customer'),
+						(string)($query['provider_order_id'] ?? $sessionId),
+					);
+					return ['success' => true, 'status' => 'paid'];
+				}
+				if ($query['success'] ?? false) {
+					return ['success' => true, 'status' => $query['status'] ?? 'pending'];
+				}
+			}
+		}
+
+		if ($payment->getProvider() === PayPalProvider::NAME) {
+			$paypalOrderId = trim((string)($paypalToken ?? ''));
+			if ($paypalOrderId === '') {
+				$paypalOrderId = (string)($payment->getProviderOrderId() ?? '');
+			}
+			if ($paypalOrderId !== '') {
+				$query = $this->paypalProvider->queryAndCaptureOrder($paypalOrderId);
+				if (($query['success'] ?? false) && ($query['status'] ?? '') === 'paid') {
+					$confirm = $this->confirmPayment(
+						$orderId,
+						(string)($query['payer_user_id'] ?? $payment->getClientUserId() ?? 'paypal_user'),
+						(string)($query['provider_order_id'] ?? $paypalOrderId),
+					);
+					if (!($confirm['success'] ?? false)) {
+						return [
+							'success' => false,
+							'error' => $confirm['error'] ?? $this->l->t('PayPal capture failed'),
+							'status' => 'pending',
+						];
+					}
+					return ['success' => true, 'status' => 'paid'];
+				}
+				if ($query['success'] ?? false) {
+					return ['success' => true, 'status' => $query['status'] ?? 'pending'];
+				}
+				if (!empty($query['error'])) {
+					return [
+						'success' => false,
+						'error' => (string)$query['error'],
+						'status' => 'pending',
+					];
+				}
 			}
 		}
 

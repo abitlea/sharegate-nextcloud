@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.4 — 2026-06-03
+
+### Added
+- **Stripe Checkout** — international card/wallet payments (redirect + webhook)
+- **PayPal Checkout** — international PayPal payments (redirect + webhook + capture)
+- Payment provider catalog: Mock · Stripe · PayPal · Alipay Face-to-Face (China)
+- Provider API fields: `providers`, `effective_provider_label`, `payment_flow`, `display_currency`
+- Buyer page: server-side l10n, dynamic currency, QR (Alipay) vs redirect (Stripe/PayPal)
+- **`file_id` binding** — paid shares persist Nextcloud file ID; download/save survives rename/move (path fallback for legacy rows)
+- **Buyer save-to-cloud UI** — logged-in buyers copy purchased files to `ShareGate/` on the same Nextcloud instance
+
+### Changed
+- Payment system i18n: PHP `IL10N` for errors/messages; account binding UI translations
+- `info.xml` bilingual store metadata (`en` + `zh_CN`) with save-to-cloud feature description
+- Mock payment hidden from production admin UI (API retained for development/E2E)
+- Buyer hint: “Scan with Alipay to pay” (Alipay); Stripe/PayPal redirect copy per provider
+- PayPal/Stripe return URLs trigger payment confirmation polling
+
+## 1.3.3 — 2026-06-16
+
+### Changed
+- 发布包剔除开发残留（`.cursor/`、嵌套 tar.gz、`temp_*.py`、前端构建源码等），体积约 62 MB → 7 MB
+
 ## 1.3.2 — 2026-06-13
 
 ### Added

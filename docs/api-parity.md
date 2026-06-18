@@ -56,7 +56,7 @@
 | `admin#shares` | ✅ | 全站分享列表已实现 |
 | `admin#payments` | ✅ | 全站订单列表已实现 |
 | `share#settings` 整页模板 | 已废弃 | 路由重定向；`templates/share/settings.php` 已删除 |
-| `file_id` 列 | 未实现 | 分享绑定路径，路径改名会失效 |
+| `file_id` 列 | ✅ | 分享绑定 NC fileid；迁移回填；下载优先 `getById`，路径回退兼容旧数据 |
 
 ## 测试
 

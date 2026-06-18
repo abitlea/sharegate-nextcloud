@@ -1,9 +1,4 @@
-import { translate } from '@nextcloud/l10n'
-
-function t(key, fallback) {
-	const v = translate('sharegate', key)
-	return v && v !== key ? v : fallback
-}
+import { t } from './l10n.js'
 
 export function formatSize(bytes) {
 	if (!bytes && bytes !== 0) {
@@ -29,9 +24,9 @@ export function formatRelativeDate(ms) {
 		const diff = Date.now() - ms
 		const days = Math.floor(diff / 86400000)
 		if (days < 1) {
-			return t('Today', '今天')
+			return t('Today')
 		}
-		return days + t(' days ago', '天前')
+		return days + t(' days ago')
 	} catch {
 		return '—'
 	}
@@ -73,7 +68,7 @@ export function buildPublicUrl(path) {
 
 export function formatPriceYuan(cents) {
 	const yuan = cents / 100
-	const suffix = t('yuan', '元')
+	const suffix = t('yuan')
 	if (Number.isInteger(yuan)) {
 		return yuan + suffix
 	}

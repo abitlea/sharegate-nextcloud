@@ -2,7 +2,7 @@
 	<NcContent app-name="sharegate">
 		<NcAppNavigation
 			:open.sync="navigationOpen"
-			:aria-label="t('Paid sharing', '付费分享')">
+			:aria-label="t('Paid sharing')">
 			<template v-if="showSearch" #search>
 				<NcAppNavigationSearch
 					v-model="searchQuery"
@@ -64,8 +64,8 @@
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
 import { showError, showTemporary } from './utils/notify.js'
+import { t } from './utils/l10n.js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
@@ -131,56 +131,56 @@ export default {
 		},
 		pageTitle() {
 			const titles = {
-				public: this.t('Your shares', '你的共享'),
-				paid: this.t('Paid shares', '付费分享'),
-				account: this.t('Account binding', '账号绑定'),
-				stats: this.t('Statistics', '收益查看'),
+				public: this.t('Your shares'),
+				paid: this.t('Paid shares'),
+				account: this.t('Account binding'),
+				stats: this.t('Statistics'),
 			}
 			return titles[this.activeHash] || titles.public
 		},
 		contentPageHeading() {
 			if (this.route.view === 'list' && this.route.filter === 'all') {
-				return this.t('Your shares', '你的共享')
+				return this.t('Your shares')
 			}
 			if (this.route.view === 'list' && this.route.filter === 'active') {
-				return this.t('Paid shares', '付费分享')
+				return this.t('Paid shares')
 			}
 			return this.pageTitle
 		},
 		searchLabel() {
 			if (this.route.view === 'account') {
-				return this.t('Search account settings', '搜索账户设置')
+				return this.t('Search account settings')
 			}
 			if (this.route.view === 'stats') {
-				return this.t('Search statistics', '搜索文件名或分享状态')
+				return this.t('Search statistics')
 			}
 			return this.route.filter === 'active'
-				? this.t('Search paid shares', '搜索文件名、标题或链接 ID')
-				: this.t('Search your shares', '搜索已共享的文件名')
+				? this.t('Search paid shares')
+				: this.t('Search your shares')
 		},
 		navItems() {
 			return [
 				{
 					hash: 'public',
-					name: this.t('Your shares', '你的共享'),
+					name: this.t('Your shares'),
 					icon: LinkVariant,
 					countKey: 'all',
 				},
 				{
 					hash: 'paid',
-					name: this.t('Paid shares', '付费分享'),
+					name: this.t('Paid shares'),
 					icon: AccountCash,
 					countKey: 'active',
 				},
 				{
 					hash: 'account',
-					name: this.t('Account binding', '账号绑定'),
+					name: this.t('Account binding'),
 					icon: Cog,
 					countKey: null,
 				},
 				{
 					hash: 'stats',
-					name: this.t('Statistics', '收益查看'),
+					name: this.t('Statistics'),
 					icon: ChartDonut,
 					countKey: 'stats',
 				},
@@ -225,10 +225,7 @@ export default {
 	},
 	methods: {
 		formatNavCounter,
-		t(key, fallback) {
-			const v = translate('sharegate', key)
-			return v && v !== key ? v : fallback
-		},
+		t,
 		navHref(hash) {
 			const config = getDashboardConfig()
 			const base = (config.dashboardUrl || '').split('#')[0].replace(/\/$/, '')
@@ -290,7 +287,7 @@ export default {
 		},
 		async confirmDisableShare(shareId) {
 			const confirmed = confirm(
-				this.t('Confirm cancel share', '确定取消该付费分享？买家将无法继续支付和下载。'),
+				this.t('Confirm cancel share'),
 			)
 			if (!confirmed) {
 				return
@@ -298,14 +295,14 @@ export default {
 			try {
 				const data = await disableShare(shareId)
 				if (data.success) {
-					showTemporary(this.t('Share cancelled', '已取消分享'))
+					showTemporary(this.t('Share cancelled'))
 					this.refreshCounts()
 					this.$refs.listPanel?.reload?.()
 				} else {
-					showError(data.error || this.t('Failed to cancel share', '停用失败'))
+					showError(data.error || this.t('Failed to cancel share'))
 				}
 			} catch (e) {
-				showError(this.t('Network error', '网络错误') + ': ' + e.message)
+				showError(this.t('Network error') + ': ' + e.message)
 			}
 		},
 	},

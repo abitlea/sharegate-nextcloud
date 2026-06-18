@@ -9,6 +9,9 @@
 		</div>
 
 		<div id="pay-section" style="display:none;">
+			<div class="file-preview" id="file-preview"<?php if (empty($_['file_icon_url'])) { print(' hidden'); } ?>>
+				<img id="file-icon" class="file-preview__icon" alt="<?php p($_['file_name'] ?? ''); ?>" width="96" height="96" loading="lazy"<?php if (!empty($_['file_icon_url'])) { ?> src="<?php p($_['file_icon_url']); ?>"<?php } ?> />
+			</div>
 			<h1 id="share-title">-</h1>
 			<div class="desc" id="share-desc"></div>
 			<div class="file-info">
@@ -17,12 +20,12 @@
 				<div><span class="label"><?php p($l->t('Access period')); ?></span><span class="value" id="access-info">-</span></div>
 			</div>
 			<div class="price">
-				<span class="yuan">¥</span><span id="share-price">0.00</span>
+				<span id="share-price">—</span>
 			</div>
-			<button class="btn btn-pay" id="pay-btn" type="button">📱 <?php p($l->t('Scan to pay')); ?></button>
+			<button class="btn btn-pay" id="pay-btn" type="button"><?php p($l->t('Pay now')); ?></button>
 			<div class="qrcode" id="qrcode">
 				<div id="qrcode-container"></div>
-				<p class="hint"><?php p($l->t('Scan with Alipay or WeChat to pay')); ?></p>
+				<p class="hint" id="pay-hint"><?php p($l->t('Scan with Alipay to pay')); ?></p>
 				<p class="hint" style="font-size:11px;"><?php p($l->t('Page refreshes automatically after payment')); ?></p>
 			</div>
 			<div class="error" id="pay-error"></div>
@@ -30,6 +33,10 @@
 				<p>✅ <?php p($l->t('You have download access')); ?></p>
 				<button class="btn btn-download" id="download-btn-paid" type="button">⬇️ <?php p($l->t('Download now')); ?></button>
 				<button class="btn btn-save-cloud" id="save-cloud-btn" style="display:none;" type="button">☁️ <?php p($l->t('Save to my Nextcloud')); ?></button>
+				<p class="hint save-cloud-login-hint" id="save-cloud-login-hint-paid" style="display:none;">
+					<?php p($l->t('Log in to this Nextcloud account to save the file to your cloud drive.')); ?>
+					<a href="<?php p($_['login_url'] ?? ''); ?>"><?php p($l->t('Log in')); ?></a>
+				</p>
 			</div>
 		</div>
 
@@ -38,8 +45,12 @@
 			<h2><?php p($l->t('Download access confirmed')); ?></h2>
 			<p><?php p($l->t('You can download anytime within the access period')); ?></p>
 			<button class="btn btn-download" id="download-btn-success" type="button">⬇️ <?php p($l->t('Start download')); ?></button>
-			<button class="btn btn-save-cloud" id="save-cloud-btn-success" style="display:none;" type="button">☁️ <?php p($l->t('Save to my Nextcloud')); ?></button>
-		</div>
+				<button class="btn btn-save-cloud" id="save-cloud-btn-success" style="display:none;" type="button">☁️ <?php p($l->t('Save to my Nextcloud')); ?></button>
+				<p class="hint save-cloud-login-hint" id="save-cloud-login-hint-success" style="display:none;">
+					<?php p($l->t('Log in to this Nextcloud account to save the file to your cloud drive.')); ?>
+					<a href="<?php p($_['login_url'] ?? ''); ?>"><?php p($l->t('Log in')); ?></a>
+				</p>
+			</div>
 
 		<div class="expired" id="expired-section" style="display:none;">
 			<div class="icon">😅</div>

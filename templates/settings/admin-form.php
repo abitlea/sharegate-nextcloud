@@ -6,20 +6,23 @@
  * @var \OCP\IL10N $l
  */
 $alipay = $form['alipay'];
+$mockSelectable = (bool)($form['mock_selectable'] ?? false);
+$mockWarning = (string)($form['mock_production_warning'] ?? '');
 ?>
 <div id="sharegate-admin-settings" class="sg-account-form">
-	<p>
-		<strong><?php p($l->t('Effective provider')); ?>:</strong>
-		<span id="sg-effective-provider"><?php p($form['effective_provider']); ?></span>
-	</p>
+	<?php if ($mockWarning !== '') : ?>
+	<p class="warning"><?php p($mockWarning); ?></p>
+	<?php endif; ?>
 
 	<p>
 		<label for="sg-payment-mode"><?php p($l->t('Payment mode')); ?></label>
 		<select id="sg-payment-mode">
+			<?php if ($mockSelectable) : ?>
 			<option value="mock" <?php if ($form['payment_mode'] === 'mock') { p('selected'); } ?>>
 				<?php p($l->t('Mock (development)')); ?>
 			</option>
-			<option value="alipay_f2f" <?php if ($form['payment_mode'] === 'alipay_f2f') { p('selected'); } ?>>
+			<?php endif; ?>
+			<option value="alipay_f2f" <?php if ($form['payment_mode'] === 'alipay_f2f' || (!$mockSelectable && $form['payment_mode'] === 'mock')) { p('selected'); } ?>>
 				<?php p($l->t('Alipay Face-to-Face')); ?>
 			</option>
 		</select>

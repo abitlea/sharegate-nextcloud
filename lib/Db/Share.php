@@ -11,6 +11,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setShareId(string $shareId)
  * @method string getFilePath()
  * @method void setFilePath(string $filePath)
+ * @method int getFileId()
+ * @method void setFileId(int $fileId)
  * @method string getFileName()
  * @method void setFileName(string $fileName)
  * @method int getFileSize()
@@ -37,6 +39,7 @@ use OCP\AppFramework\Db\Entity;
 class Share extends Entity {
 	protected string $shareId = '';
 	protected string $filePath = '';
+	protected int $fileId = 0;
 	protected string $fileName = '';
 	protected int $fileSize = 0;
 	protected string $title = '';
@@ -53,6 +56,7 @@ class Share extends Entity {
 	public function __construct() {
 		$this->addType('shareId', 'string');
 		$this->addType('filePath', 'string');
+		$this->addType('fileId', 'integer');
 		$this->addType('fileName', 'string');
 		$this->addType('fileSize', 'integer');
 		$this->addType('title', 'string');

@@ -15,14 +15,21 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\FileDisplayResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Http\StreamResponse;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\Files\File;
+use OCP\Files\IMimeTypeDetector;
 use OCP\Files\NotFoundException;
 use OCP\IRequest;
 use OCP\IURLGenerator;
+use OCP\IPreview;
+use OCP\IUserManager;
+use OCP\IUserSession;
 use OCP\L10N\IFactory;
 use OCP\Util;
+use OCP\AppFramework\Http;
 
 class ShareController extends Controller {
 	public function __construct(
@@ -30,9 +37,11 @@ class ShareController extends Controller {
 		IRequest $request,
 		private ShareService $shareService,
 		private DownloadService $downloadService,
+		private IMimeTypeDetector $mimeTypeDetector,
 		private ShareStatsService $shareStatsService,
-		private SaveToCloudService $saveToCloudService,
 		private IURLGenerator $urlGenerator,
+		private IUserManager $userManager,
+		private IUserSession $userSession,
 		private \OCP\ISession $session,
 		private IFactory $l10nFactory,
 	) {
@@ -157,9 +166,14 @@ class ShareController extends Controller {
 		}
 
 		$ncUserId = $this->shareService->getCurrentUserId();
+		$l = $this->l10nFactory->get(Application::APP_ID);
+		$shareInfo = $this->downloadService->getPublicShareInfo($shareId) ?? [];
+		$loginUrl = $this->loginPageUrl();
 
 		$downloadConfig = [
 			'shareId' => $shareId,
+			'mimeIconUrl' => $shareInfo['mime_icon_url'] ?? '',
+			'previewIconUrl' => $shareInfo['icon_url'] ?? '',
 			'shareInfoUrl' => $this->urlGenerator->linkToRoute(
 				'sharegate.share.getShareInfo',
 				['shareId' => $shareId],
@@ -183,17 +197,197 @@ class ShareController extends Controller {
 				['shareId' => $shareId],
 			),
 			'ncLoggedIn' => $ncUserId !== null,
+			'loginUrl' => $loginUrl,
 			'requestToken' => (string)$this->session->get('requesttoken'),
+			'l10n' => [
+				'unknown' => $l->t('Unknown'),
+				'paidContentDefault' => $l->t('Paid content, scan to pay and download'),
+				'days' => $l->t(' days'),
+				'requestFailed' => $l->t('Request failed'),
+				'loadingFailed' => $l->t('Loading failed'),
+				'generatingQr' => $l->t('Generating payment QR code...'),
+				'payNow' => $l->t('Pay now'),
+				'scanToPay' => $l->t('Scan to pay'),
+				'payWithCardHint' => $l->t('You will be redirected to Stripe to pay by card or wallet.'),
+				'payWithPayPalHint' => $l->t('You will be redirected to PayPal to complete payment.'),
+				'scanWithAlipay' => $l->t('Scan with Alipay to pay'),
+				'redirectingToPayment' => $l->t('Redirecting to payment...'),
+				'confirmingPayment' => $l->t('Confirming payment...'),
+				'paymentQrCode' => $l->t('Payment QR code'),
+				'waitingForPayment' => $l->t('Waiting for scan payment...'),
+				'noQrReturned' => $l->t('Payment created but no QR code returned'),
+				'qrGenerationFailed' => $l->t('QR code generation failed, please refresh'),
+				'createPaymentFailed' => $l->t('Failed to create payment'),
+				'paymentTimedOut' => $l->t('Payment timed out, please scan again'),
+				'downloading' => $l->t('Downloading...'),
+				'downloadPermissionDenied' => $l->t('Download permission denied'),
+				'downloadFailed' => $l->t('Download failed'),
+				'savingToCloud' => $l->t('Saving to your Nextcloud...'),
+				'savedToCloud' => $l->t('File saved to your Nextcloud'),
+				'saveToCloudFailed' => $l->t('Save to cloud failed'),
+				'saveToCloudLoginHint' => $l->t('Log in to this Nextcloud account to save the file to your cloud drive.'),
+			],
 		];
 
 		return new TemplateResponse(Application::APP_ID, 'buyer/view', [
 			'share_id' => $shareId,
+			'file_icon_url' => $shareInfo['mime_icon_url'] ?? '',
+			'file_name' => $shareInfo['file_name'] ?? '',
 			'download_config' => json_encode(
 				$downloadConfig,
 				JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS,
 			),
 			'csp_nonce' => CspNonce::get(),
+			'login_url' => $loginUrl,
 		], TemplateResponse::RENDER_AS_BASE);
+	}
+
+	private function loginPageUrl(): string {
+		try {
+			return $this->urlGenerator->linkToRoute('core.login.showLoginForm');
+		} catch (\Throwable) {
+			return rtrim($this->urlGenerator->getAbsoluteURL(''), '/') . '/login';
+		}
+	}
+
+	private function saveToCloudService(): SaveToCloudService {
+		if (!isset(\OC::$server)) {
+			throw new \RuntimeException('Server container unavailable');
+		}
+
+		return \OC::$server->get(SaveToCloudService::class);
+	}
+
+	/** 买家页文件预览图标（缩略图或 MIME 图标） */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function fileIcon(string $shareId) {
+		if ($this->downloadService->getPublicShareInfo($shareId) === null) {
+			return new DataResponse(['error' => '分享链接不存在或已过期'], 404);
+		}
+
+		try {
+			$share = $this->shareService->getShareEntity($shareId);
+			$file = $this->downloadService->tryResolveShareFile($share);
+		} catch (\Throwable) {
+			return new DataResponse(['error' => '分享链接不存在或已过期'], 404);
+		}
+
+		if ($file === null) {
+			$mime = $share->getFileName() !== ''
+				? $this->mimeTypeDetector->detectPath($share->getFileName())
+				: 'application/octet-stream';
+
+			return new RedirectResponse($this->downloadService->mimeIconAbsoluteUrl($mime));
+		}
+
+		$preview = $this->previewService();
+		if ($preview !== null) {
+			try {
+				$image = $this->runAsShareOwner($share->getCreatedBy(), function () use ($preview, $file) {
+					if (!$preview->isAvailable($file)) {
+						return null;
+					}
+
+					return $preview->getPreview($file, 256, 256, false);
+				});
+				if ($image !== null) {
+					$response = new FileDisplayResponse($image, Http::STATUS_OK, [
+						'Content-Type' => $image->getMimeType(),
+					]);
+					$response->cacheFor(3600);
+					return $response;
+				}
+			} catch (\Throwable) {
+				// fall through to mime icon
+			}
+		}
+
+		$imageResponse = $this->imageFileResponse($share->getCreatedBy(), $file);
+		if ($imageResponse !== null) {
+			return $imageResponse;
+		}
+
+		return new RedirectResponse(
+			$this->downloadService->mimeIconAbsoluteUrl($file->getMimeType() ?: 'application/octet-stream'),
+		);
+	}
+
+	private function previewService(): ?IPreview {
+		if (!class_exists(IPreview::class) || !isset(\OC::$server)) {
+			return null;
+		}
+
+		try {
+			/** @var IPreview $preview */
+			$preview = \OC::$server->get(IPreview::class);
+			return $preview;
+		} catch (\Throwable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Run preview generation as the share owner so anonymous buyers can see thumbnails.
+	 *
+	 * @template T
+	 * @param callable(): T $callback
+	 * @return T
+	 */
+	private function runAsShareOwner(string $ownerId, callable $callback) {
+		if ($ownerId === '') {
+			return $callback();
+		}
+
+		$owner = $this->userManager->get($ownerId);
+		if ($owner === null) {
+			return $callback();
+		}
+
+		$previousUser = $this->userSession->getUser();
+		if (method_exists($this->userSession, 'setVolatileActiveUser')) {
+			$this->userSession->setVolatileActiveUser($owner);
+		} else {
+			$this->userSession->setUser($owner);
+		}
+
+		try {
+			return $callback();
+		} finally {
+			if (method_exists($this->userSession, 'setVolatileActiveUser')) {
+				$this->userSession->setVolatileActiveUser($previousUser);
+			} else {
+				$this->userSession->setUser($previousUser);
+			}
+		}
+	}
+
+	/**
+	 * For image shares, serve the original file when NC preview is unavailable.
+	 */
+	private function imageFileResponse(string $ownerId, File $file): ?StreamResponse {
+		$mime = $file->getMimeType() ?: $this->mimeTypeDetector->detectPath($file->getName());
+		if ($mime === '' || !str_starts_with($mime, 'image/')) {
+			return null;
+		}
+
+		$response = $this->runAsShareOwner($ownerId, function () use ($file, $mime): ?StreamResponse {
+			if (!$file->isReadable()) {
+				return null;
+			}
+
+			$stream = $file->fopen('r');
+			if ($stream === false) {
+				return null;
+			}
+
+			$streamResponse = new \OCP\AppFramework\Http\StreamResponse($stream);
+			$streamResponse->addHeader('Content-Type', $mime);
+			$streamResponse->cacheFor(3600);
+			return $streamResponse;
+		});
+
+		return $response instanceof StreamResponse ? $response : null;
 	}
 
 	/** 公开分享信息 JSON */
@@ -236,36 +430,47 @@ class ShareController extends Controller {
 		}
 
 		try {
-			$info = $this->downloadService->getPublicShareInfo($shareId);
-			if ($info === null) {
-				return new DataResponse(['error' => '分享不存在'], 404);
-			}
 			$share = $this->shareService->getShareEntity($shareId);
-			$file = $this->downloadService->resolveShareFile($share);
+			/** @var File $file */
+			/** @var resource $stream */
+			[$file, $stream] = $this->runAsShareOwner($share->getCreatedBy(), function () use ($share) {
+				$file = $this->downloadService->resolveShareFile($share);
+				$stream = $file->fopen('r');
+				if ($stream === false) {
+					throw new \RuntimeException('无法读取文件');
+				}
+
+				return [$file, $stream];
+			});
 		} catch (NotFoundException $e) {
 			return new DataResponse(['error' => '文件不存在: ' . $e->getMessage()], 404);
+		} catch (\Throwable $e) {
+			return new DataResponse(['error' => '无法读取文件: ' . $e->getMessage()], 500);
 		}
 
-		$stream = $file->fopen('r');
-		if ($stream === false) {
-			return new DataResponse(['error' => '无法读取文件'], 500);
-		}
-
-		$response = new StreamResponse($stream);
-		$response->addHeader(
-			'Content-Disposition',
-			'attachment; filename="' . addslashes($file->getName()) . '"',
-		);
-		$response->addHeader('Content-Type', $file->getMimeType() ?: 'application/octet-stream');
-		$response->addHeader('Content-Length', (string)$file->getSize());
+		$response = new \OCP\AppFramework\Http\StreamResponse($stream, Http::STATUS_OK, [
+			'Content-Disposition' => 'attachment; filename="' . addslashes($file->getName()) . '"',
+			'Content-Type' => $file->getMimeType() ?: 'application/octet-stream',
+			'Content-Length' => (string)$file->getSize(),
+		]);
 		$this->shareStatsService->recordDownload($shareId);
 		return $response;
 	}
 
 	/** 同一 NC 实例内转存到当前登录用户网盘 */
+	#[PublicPage]
 	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function saveToCloud(string $shareId): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
+		if ($userId === null) {
+			$l = $this->l10nFactory->get(Application::APP_ID);
+			return new DataResponse([
+				'success' => false,
+				'error' => $l->t('Please log in to Nextcloud before saving to cloud'),
+			], 401);
+		}
+
 		$body = $this->request->getParams();
 		$raw = file_get_contents('php://input');
 		if ($raw !== false && $raw !== '') {
@@ -275,11 +480,22 @@ class ShareController extends Controller {
 			}
 		}
 		$providerUserId = (string)($body['provider_user_id'] ?? '');
-		$result = $this->saveToCloudService->saveToCloud(
-			$shareId,
-			$providerUserId,
-			$userId ?? '',
-		);
+		try {
+			$result = $this->saveToCloudService()->saveToCloud(
+				$shareId,
+				$providerUserId,
+				$userId,
+			);
+		} catch (\Throwable $e) {
+			$l = $this->l10nFactory->get(Application::APP_ID);
+			$detail = trim($e->getMessage());
+			return new DataResponse([
+				'success' => false,
+				'error' => $detail !== ''
+					? $l->t('Save to cloud failed') . ': ' . $detail
+					: $l->t('Save to cloud failed'),
+			], 500);
+		}
 		return new DataResponse($result, ($result['success'] ?? false) ? 200 : 400);
 	}
 

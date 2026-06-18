@@ -1,25 +1,45 @@
 <template>
-	<td class="filename" @dblclick.stop="openFile">
-		<div class="sg-file-name">
-			<img
-				class="files-list__row-icon-preview sg-file-icon"
-				:class="{ 'files-list__row-icon-preview--loaded': iconLoaded }"
-				:src="iconUrl"
-				alt=""
-				aria-hidden="true"
-				loading="lazy"
-				@load="iconLoaded = true"
-				@error="onIconError" />
-			<span class="sg-file-name__text" :title="displayName">{{ displayName }}</span>
+	<td class="filename files-list__row-name" @click.stop>
+		<button
+			v-if="canActivate"
+			type="button"
+			class="files-list__row-name-link"
+			:aria-label="displayName"
+			:title="openTitle"
+			@click="onActivate">
+			<span class="files-list__row-icon-preview-container">
+				<img
+					class="files-list__row-icon-preview sg-file-icon"
+					:class="{ 'files-list__row-icon-preview--loaded': iconLoaded }"
+					:src="iconUrl"
+					alt=""
+					aria-hidden="true"
+					loading="lazy"
+					@load="iconLoaded = true"
+					@error="onIconError" />
+			</span>
+			<span class="files-list__row-name-text">{{ displayName }}</span>
+		</button>
+		<div v-else class="sg-file-name-readonly">
+			<span class="files-list__row-icon-preview-container">
+				<img
+					class="files-list__row-icon-preview sg-file-icon"
+					:class="{ 'files-list__row-icon-preview--loaded': iconLoaded }"
+					:src="iconUrl"
+					alt=""
+					aria-hidden="true"
+					loading="lazy"
+					@load="iconLoaded = true"
+					@error="onIconError" />
+			</span>
+			<span class="files-list__row-name-text">{{ displayName }}</span>
 		</div>
 	</td>
 </template>
 
 <script>
-import { translate } from '@nextcloud/l10n'
-import { fileIconUrlFromRow, fileMimeIconUrl, openUserFile } from '../utils/files.js'
+import { fileIconUrlFromRow, fileMimeIconUrl } from '../utils/files.js'
 import { guessMimeFromFileName } from '../utils/mime.js'
-import { showTemporary } from '../utils/notify.js'
 
 export default {
 	name: 'FileNameCell',
@@ -32,7 +52,13 @@ export default {
 			type: String,
 			default: '',
 		},
+		activateMode: {
+			type: String,
+			default: 'file',
+			validator: (value) => value === 'file' || value === 'settings',
+		},
 	},
+	emits: ['activate'],
 	data() {
 		return {
 			iconLoaded: false,
@@ -52,6 +78,15 @@ export default {
 			}
 			return fileIconUrlFromRow(this.row, 32)
 		},
+		canActivate() {
+			if (this.activateMode === 'settings') {
+				return Boolean(this.row.share_id)
+			}
+			return Boolean(this.row.file_id || this.row.file_path)
+		},
+		openTitle() {
+			return this.displayName
+		},
 	},
 	watch: {
 		iconUrl() {
@@ -60,11 +95,11 @@ export default {
 		},
 	},
 	methods: {
-		openFile() {
-			if (!openUserFile(this.row)) {
-				const msg = translate('sharegate', 'Cannot open file')
-				showTemporary(msg && msg !== 'Cannot open file' ? msg : '无法打开该文件')
+		onActivate() {
+			if (!this.canActivate) {
+				return
 			}
+			this.$emit('activate', this.row)
 		},
 		onIconError() {
 			if (!this.useMimeFallback && this.row.file_id) {

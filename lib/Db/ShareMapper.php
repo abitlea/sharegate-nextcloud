@@ -92,7 +92,40 @@ class ShareMapper extends QBMapper {
 	}
 
 	/**
-	 * 同一用户、同一路径下是否已有有效付费分享（用于创建前去重）。
+	 * 同一用户、同一 file_id 下是否已有有效付费分享（用于创建前去重）。
+	 */
+	public function findActiveByUserAndFileId(string $userId, int $fileId): ?Share {
+		if ($fileId <= 0) {
+			return null;
+		}
+
+		$now = (int)(microtime(true) * 1000);
+
+		try {
+			$shares = $this->findByUser($userId);
+		} catch (Exception) {
+			return null;
+		}
+
+		foreach ($shares as $share) {
+			if ($share->getFileId() !== $fileId) {
+				continue;
+			}
+			if ($share->getStatus() !== 'active') {
+				continue;
+			}
+			$expireAt = $share->getExpireAt();
+			if ($expireAt !== null && $expireAt <= $now) {
+				continue;
+			}
+			return $share;
+		}
+
+		return null;
+	}
+
+	/**
+	 * 同一用户、同一路径下是否已有有效付费分享（用于创建前去重，兼容无 file_id 的旧记录）。
 	 */
 	public function findActiveByUserAndFilePath(string $userId, string $filePath): ?Share {
 		$needle = $this->normalizeStoredPath($filePath);
@@ -140,7 +173,7 @@ class ShareMapper extends QBMapper {
 		$this->applySearchConstraint($qb, $query);
 		$qb->orderBy('created_at', 'DESC');
 		$shares = $this->findEntities($qb);
-		$deduped = $this->dedupeByFilePath($shares);
+		$deduped = $this->dedupeByFileKey($shares);
 		$this->disableStaleDuplicates($shares, $deduped);
 
 		return array_slice($deduped, $offset, $limit);
@@ -157,7 +190,7 @@ class ShareMapper extends QBMapper {
 		$this->applySearchConstraint($qb, $query);
 		$qb->orderBy('created_at', 'DESC');
 		$shares = $this->findEntities($qb);
-		$deduped = $this->dedupeByFilePath($shares);
+		$deduped = $this->dedupeByFileKey($shares);
 		$this->disableStaleDuplicates($shares, $deduped);
 
 		return count($deduped);
@@ -167,25 +200,34 @@ class ShareMapper extends QBMapper {
 	 * @param Share[] $shares
 	 * @return Share[]
 	 */
-	private function dedupeByFilePath(array $shares): array {
-		/** @var array<string, Share> $byPath */
-		$byPath = [];
+	private function dedupeByFileKey(array $shares): array {
+		/** @var array<string, Share> $byKey */
+		$byKey = [];
 
 		foreach ($shares as $share) {
-			$key = $this->normalizeStoredPath($share->getFilePath());
-			$current = $byPath[$key] ?? null;
+			$key = $this->dedupeKey($share);
+			$current = $byKey[$key] ?? null;
 			if ($current === null || $share->getCreatedAt() > $current->getCreatedAt()) {
-				$byPath[$key] = $share;
+				$byKey[$key] = $share;
 			}
 		}
 
-		$items = array_values($byPath);
+		$items = array_values($byKey);
 		usort(
 			$items,
 			static fn (Share $a, Share $b): int => $b->getCreatedAt() <=> $a->getCreatedAt(),
 		);
 
 		return $items;
+	}
+
+	private function dedupeKey(Share $share): string {
+		$fileId = $share->getFileId();
+		if ($fileId > 0) {
+			return 'id:' . $fileId;
+		}
+
+		return 'path:' . $this->normalizeStoredPath($share->getFilePath());
 	}
 
 	private function normalizeStoredPath(string $path): string {

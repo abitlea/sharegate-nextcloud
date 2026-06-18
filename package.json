@@ -2,9 +2,10 @@
 	"name": "sharegate",
 	"private": true,
 	"scripts": {
-		"build": "webpack --node-env production --progress",
-		"dev": "webpack --node-env development --progress",
-		"watch": "webpack --node-env development --progress --watch"
+		"l10n": "node scripts/l10n-createjs.js",
+		"build": "npm run l10n && webpack --node-env production --progress",
+		"dev": "npm run l10n && webpack --node-env development --progress",
+		"watch": "npm run l10n && webpack --node-env development --progress --watch"
 	},
 	"dependencies": {
 		"@nextcloud/l10n": "^3.0.2",
