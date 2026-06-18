@@ -1,97 +1,99 @@
 # ShareGate for Nextcloud
 
-Nextcloud 应用：**安装启用即可用**，无需单独部署 Node 服务。
+> **Languages:** English (this file) · [简体中文](README.zh-CN.md)
 
-**当前版本** 1.3.4 — 管理台四页（你的共享 · 付费分享 · 账户绑定 · 收益查看）、买家付费页、**Stripe / PayPal / 支付宝当面付**、站内转存、中英双语界面。
+Nextcloud app: **install and enable — no separate Node server required.**
 
-## 要求
+**Current version:** 1.3.4 — seller dashboard (Your shares · Paid shares · Account binding · Revenue), buyer paywall, **Stripe / PayPal / Alipay Face-to-Face**, save-to-cloud, bilingual UI (`en` / `zh_CN`).
+
+## Requirements
 
 - Nextcloud 28 – 33
-- PHP 8.2+（`openssl`、`mbstring`、`curl` 扩展；跑测试与 `composer install` 时需要）
+- PHP 8.2+ with `openssl`, `mbstring`, and `curl` (for tests and `composer install`)
 
-## 安装
+## Installation
 
 ```bash
-# 复制到 Nextcloud apps 目录（文件夹名必须为 sharegate）
+# Copy into Nextcloud apps directory (folder name must be sharegate)
 cp -r sharegate-nextcloud /path/to/nextcloud/apps/sharegate
 cd /path/to/nextcloud/apps/sharegate
 composer install --no-dev
 ```
 
-管理后台 → **应用** → 启用 **ShareGate** → `php occ upgrade`（创建/更新 `sharegate_*` 表，含 `file_id` 等 migration）。
+Admin → **Apps** → enable **ShareGate** → run `php occ upgrade` (creates/updates `sharegate_*` tables, including `file_id` migration).
 
-## 卖家使用（管理台）
+## Sellers (dashboard)
 
-1. 登录 Nextcloud
-2. 顶栏 **付费分享**，或访问 `/index.php/apps/sharegate/`
+1. Log in to Nextcloud
+2. Open **Paid sharing** in the header, or visit `/index.php/apps/sharegate/`
 
-多实例部署见 [docs/RELEASE.md](docs/RELEASE.md)（DietPi `/nextcloud` vs Docker `:8080`）。
+Multi-instance deployment: [docs/RELEASE.md](docs/RELEASE.md) (DietPi `/nextcloud` vs Docker `:8080`).
 
-3. 侧栏四页：
-   - **公开链接** — 网盘文件，未分享行点「添加分享」
-   - **付费分享** — 复制链接 / 编辑 / 取消分享
-   - **账户绑定** — 管理员配置 **Stripe、PayPal 或支付宝**（Mock 仅开发环境）
-   - **收益查看** — 预览、转存、下载次数
+3. Four sidebar pages:
+   - **Your shares** — browse files; click **Add share** on unshared rows
+   - **Paid shares** — copy link / edit / cancel
+   - **Account binding** — admin configures **Stripe, PayPal, or Alipay** (Mock for dev only)
+   - **Revenue** — preview, save-to-cloud, and download counts
 
-创建分享：`/apps/sharegate/embed/create`，支持 `?path=Documents/a.pdf&name=a.pdf` 预填。
+Create a share: `/apps/sharegate/embed/create` — optional `?path=Documents/a.pdf&name=a.pdf` to pre-fill.
 
-## 买家使用
+## Buyers
 
-访问卖家短链 `/apps/sharegate/s/{shareId}`：
+Visit the seller link `/apps/sharegate/s/{shareId}`:
 
-- **支付宝**：扫码支付
-- **Stripe / PayPal**：跳转 Checkout 完成支付
-- 支付成功后下载；已登录本站用户可「保存到我的 Nextcloud」（`ShareGate/` 目录）
+- **Alipay** — scan QR code to pay
+- **Stripe / PayPal** — redirect to Checkout
+- After payment: download; logged-in users on the same server can **Save to my Nextcloud** (`ShareGate/` folder)
 
-## 支付配置
+## Payment setup
 
-**Nextcloud 管理后台 → 设置 → 付费分享**，或管理台 **账户绑定** 页（管理员）。
+**Nextcloud admin → Settings → Paid sharing**, or dashboard **Account binding** (admin only).
 
-| 方式 | 说明 |
-|------|------|
-| Mock | 开发测试，无真实扣款（生产站点不可选） |
-| 支付宝当面付 | 国内买家，沙箱或生产；需配置异步通知 URL（公网可达） |
-| Stripe Checkout | 国际卡/钱包，`sk_test_` / `sk_live_` + Webhook `checkout.session.completed` |
-| PayPal Checkout | 国际买家，Sandbox Client ID/Secret + 可选 Webhook |
+| Provider | Notes |
+|----------|--------|
+| Mock | Dev/test only; not selectable on production sites |
+| Alipay Face-to-Face | China; sandbox or live; public notify URL required |
+| Stripe Checkout | Cards/wallets; `sk_test_` / `sk_live_` + webhook `checkout.session.completed` |
+| PayPal Checkout | International; Sandbox Client ID/Secret + optional webhook |
 
-Webhook 说明与测试步骤见 [lib/Payment/README.md](lib/Payment/README.md)。  
-国际化（`en` / `zh_CN`）见 [docs/I18N.md](docs/I18N.md)。
+See [lib/Payment/README.md](lib/Payment/README.md) for webhooks and testing.  
+In-app UI translations: [docs/I18N.md](docs/I18N.md).
 
-## 开发与测试
+## Development & testing
 
 ```bash
 npm install
-npm run build          # 生成 js/dashboard.js、js/download.js、l10n/*.js
+npm run build          # js/dashboard.js, js/download.js, l10n/*.js
 composer install
 composer test          # phpunit.xml.dist → tests/Unit/
 ```
 
-任务清单：[docs/BACKLOG.md](docs/BACKLOG.md)  
-发布验证（已有 NC）：[docs/RELEASE.md](docs/RELEASE.md) — `f2-deploy-verify.ps1 -NcRoot -NcUrl`  
-上架检查：[docs/STORE.md](docs/STORE.md)
+Backlog: [docs/BACKLOG.md](docs/BACKLOG.md)  
+Release verification: [docs/RELEASE.md](docs/RELEASE.md)  
+App Store checklist: [docs/STORE.md](docs/STORE.md)
 
-## 与 ShareGate monorepo 关系
+## Relation to ShareGate monorepo
 
-| monorepo | 本仓库 |
-|----------|--------|
-| Node 服务 + AList | NC 原生 App |
-| `apps/server/src/frontend/embed/*` | 同步 → `js/embed-create.js` 等 |
-| `packages/core` | `lib/Service/*` PHP 移植 |
+| monorepo | this repo |
+|----------|-----------|
+| Node server + AList | native NC app |
+| `apps/server/src/frontend/embed/*` | synced → `js/embed-create.js`, etc. |
+| `packages/core` | ported to `lib/Service/*` (PHP) |
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/sync-from-sharegate.ps1
 ```
 
-详见 [docs/PLAN.md](docs/PLAN.md)。
+See [docs/PLAN.md](docs/PLAN.md).
 
-## 路线图
+## Roadmap
 
-| 阶段 | 内容 | 状态 |
-|------|------|------|
-| 1 | 创建付费分享 + 买家页 | ✅ |
-| 2 | Mock 支付 + 下载 | ✅ |
-| 3 | 支付宝当面付 + 管理设置 | ✅ |
-| 4 | 管理台四页 + 收益查看 + 转存 | ✅ |
-| 5 | Stripe / PayPal + 中英 i18n + `file_id`（v1.3.4） | ✅ |
-| 6 | 应用商店发布 | ⬜ 见 [STORE.md](docs/STORE.md) |
-| 7 | 全站管理 API、Files 右键等 | ⬜ 二期 |
+| Phase | Scope | Status |
+|-------|--------|--------|
+| 1 | Paid shares + buyer page | ✅ |
+| 2 | Mock payment + download | ✅ |
+| 3 | Alipay F2F + admin settings | ✅ |
+| 4 | Dashboard four pages + revenue + save-to-cloud | ✅ |
+| 5 | Stripe / PayPal + i18n + `file_id` (v1.3.4) | ✅ |
+| 6 | Nextcloud App Store release | ⬜ [STORE.md](docs/STORE.md) |
+| 7 | Admin APIs, Files context menu, etc. | ⬜ phase 2 |
