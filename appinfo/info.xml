@@ -3,9 +3,9 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>sharegate</id>
     <name lang="en">Paid sharing</name>
-    <name lang="zh_CN">付费分享</name>
+    <name lang="zh-hans">付费分享</name>
     <summary lang="en">Paid file sharing — save to cloud, Stripe, PayPal, Alipay, and revenue dashboard</summary>
-    <summary lang="zh_CN">付费文件分享 — 站内转存、Stripe、PayPal、支付宝与收益统计</summary>
+    <summary lang="zh-hans">付费文件分享 — 站内转存、Stripe、PayPal、支付宝与收益统计</summary>
     <description lang="en"><![CDATA[Create paid public links for files in Nextcloud. After payment, buyers can download the file or **save it to their account on this server** (same-instance save to cloud).
 
 **Dashboard**: Your shares · Paid shares · Account binding · Revenue (preview, save-to-cloud, and download counts)
@@ -17,7 +17,7 @@
 
 Compatible with Nextcloud 28–33.
     ]]></description>
-    <description lang="zh_CN"><![CDATA[在 Nextcloud 内为网盘文件创建付费外链。买家支付后可下载文件，或**转存到本站 Nextcloud 账户**（同一实例站内转存）。
+    <description lang="zh-hans"><![CDATA[在 Nextcloud 内为网盘文件创建付费外链。买家支付后可下载文件，或**转存到本站 Nextcloud 账户**（同一实例站内转存）。
 
 **管理台四页**：你的共享 · 付费分享 · 账户绑定 · 收益查看（预览 / 转存 / 下载）
 

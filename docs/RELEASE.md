@@ -274,7 +274,7 @@ powershell -ExecutionPolicy Bypass -File scripts\release\verify-all.ps1 -UseDock
 所有版本的用户可见文案须中英双语，详见 [I18N.md](I18N.md)。发布前：
 
 - 在 NC 个人设置中分别用 **English** 与 **简体中文**  smoke-test 管理台与买家页
-- 确认 `info.xml` 含 `lang="en"` / `lang="zh_CN"` 的名称与简介
+- 确认 `info.xml` 含 `lang="en"` / `lang="zh-hans"` 的名称与简介
 
 ---
 
