@@ -1,4 +1,5 @@
 import { t } from './l10n.js'
+import { formatMoney } from './currency.js'
 
 export function formatSize(bytes) {
 	if (!bytes && bytes !== 0) {
@@ -66,13 +67,9 @@ export function buildPublicUrl(path) {
 	return origin + (path.startsWith('/') ? path : '/' + path)
 }
 
+/** @deprecated Use formatMoney */
 export function formatPriceYuan(cents) {
-	const yuan = cents / 100
-	const suffix = t('yuan')
-	if (Number.isInteger(yuan)) {
-		return yuan + suffix
-	}
-	return yuan.toFixed(2) + suffix
+	return formatMoney(cents)
 }
 
 export function formatNavCounter(value) {

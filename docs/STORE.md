@@ -2,8 +2,9 @@
 
 ## 版本
 
-- `appinfo/info.xml` → **1.3.4**
-- 发布包：`release/sharegate-1.3.4.tar.gz`（`scripts/release/f1-package.ps1` 生成）
+- `appinfo/info.xml` → **1.3.5**
+- 发布包：`release/sharegate-1.3.5.tar.gz`（`scripts/release/f1-package.ps1` 生成）
+- **商店文案**：`name` / `summary` / `description` 英文**不写 `lang`**，中文用 `lang="zh-hans"`（见 [I18N.md](I18N.md)）
 
 ## 上架前置（必做，按顺序）
 
@@ -103,20 +104,23 @@ $key = "$env:USERPROFILE\.nextcloud\certificates\sharegate.key"
 ```powershell
 # 本地
 npm run build
-powershell -File scripts\release\f1-package.ps1 -Version 1.3.4
+powershell -File scripts\release\f1-package.ps1 -Version 1.3.5
 
-# 签名（证书到位后）
-openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.key release\sharegate-1.3.4.tar.gz | openssl base64
-# 复制输出的 base64 作为 Release Signature
+# 签名（证书到位后）— Windows 请用脚本，不要用管道（易损坏签名）
+powershell -File scripts\release\f1-sign-release.ps1 -Version 1.3.5 -CopySignature
+# 输出 Verified OK 后，将单行 base64 粘贴到 App Store Signature
 
-# 将 sharegate-1.3.4.tar.gz 上传到 GitHub Releases，得到 HTTPS 下载链接
+# Linux / Git Bash 可用：
+# openssl dgst -sha512 -sign ~/.nextcloud/certificates/sharegate.key release/sharegate-1.3.5.tar.gz | openssl base64 -A
+
+# 将 sharegate-1.3.5.tar.gz 上传到 GitHub Releases，得到 HTTPS 下载链接
 ```
 
 在 [上传版本](https://apps.nextcloud.com/developer/apps/releases/new) 填写：
 
-- **Download**：`https://github.com/abitlea/sharegate-nextcloud/releases/download/v1.3.4/sharegate-1.3.4.tar.gz`
+- **Download**：`https://github.com/abitlea/sharegate-nextcloud/releases/download/v1.3.5/sharegate-1.3.5.tar.gz`
 - **Signature**：上一步 openssl 输出
-- **Changelog**：根目录 `CHANGELOG.md` 会自动被商店读取（已含 1.3.4）
+- **Changelog**：根目录 `CHANGELOG.md`（英文）与 `CHANGELOG.zh-hans.md`（简体中文）会随发布包被商店读取；版本号须与 `info.xml` 一致
 
 可选：安装 [krankerl](https://github.com/nextcloud/krankerl) 后 `krankerl sign --package` + `krankerl publish <url>` 简化签名与登记。
 
@@ -124,11 +128,12 @@ openssl dgst -sha512 -sign $env:USERPROFILE\.nextcloud\certificates\sharegate.ke
 
 - [x] `composer install --no-dev` 通过
 - [x] `npm run build` 通过
-- [ ] 发布包已生成（`release/sharegate-1.3.4.tar.gz`）
+- [ ] 发布包已生成（`release/sharegate-1.3.5.tar.gz`）
 - [x] **公开 GitHub 仓库**已创建并更新 `info.xml` 中的 URL
 - [ ] **Nextcloud 签名证书**：PR [#1044](https://github.com/nextcloud/app-certificate-requests/pull/1044) 审核中
 - [x] **5 张截图**已上传 GitHub 并写入 `info.xml`
 - [x] **应用图标** `img/app.svg`（顶栏导航 + 商店列表均从发布包读取此文件）
+- [x] `info.xml` 商店文案：英文无 `lang`，中文 `lang="zh-hans"`
 - [x] `info.xml` 中 `author mail` 为 `abitlea@126.com`
 - [ ] F2：`occ upgrade`，4 张 `sharegate_*` 表存在
 - [ ] F3：Mock 端到端（`scripts/release/f3-e2e-mock.ps1`）

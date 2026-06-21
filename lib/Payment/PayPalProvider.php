@@ -92,6 +92,33 @@ class PayPalProvider {
 	}
 
 	/**
+	 * Read-only PayPal order lookup (no capture) — for ledger / grant repair.
+	 *
+	 * @return array{success: true, payer_user_id: string}|array{success: false, error: string}
+	 */
+	public function queryOrder(string $paypalOrderId): array {
+		if (!$this->isAvailable()) {
+			return ['success' => false, 'error' => $this->l->t('PayPal not configured')];
+		}
+
+		$order = $this->apiRequest('GET', '/v2/checkout/orders/' . rawurlencode($paypalOrderId));
+		if (!($order['success'] ?? false)) {
+			return $order;
+		}
+
+		$data = $order['data'];
+		$payer = $this->extractPayerEmail($data);
+		if ($payer === '' || $payer === 'paypal_user') {
+			return ['success' => false, 'error' => $this->l->t('PayPal payer email not available')];
+		}
+
+		return [
+			'success' => true,
+			'payer_user_id' => $payer,
+		];
+	}
+
+	/**
 	 * @return array{success: true, status: string, order_id?: string, provider_order_id?: string, payer_user_id?: string}|array{success: false, error: string}
 	 */
 	public function queryAndCaptureOrder(string $paypalOrderId): array {
@@ -139,6 +166,16 @@ class PayPalProvider {
 			];
 		}
 
+		if (in_array($status, ['VOIDED', 'CANCELLED'], true)) {
+			return [
+				'success' => true,
+				'status' => 'cancelled',
+				'status_message' => $this->l->t('Buyer cancelled payment'),
+				'order_id' => $sharegateOrderId,
+				'provider_order_id' => $paypalOrderId,
+			];
+		}
+
 		return [
 			'success' => true,
 			'status' => 'pending',
@@ -172,7 +209,20 @@ class PayPalProvider {
 			];
 		}
 
-		if ($type === 'PAYMENT.Capture.COMPLETED') {
+		if ($type === 'PAYMENT.CAPTURE.REFUNDED') {
+			$sharegateOrderId = (string)($resource['custom_id'] ?? '');
+			if ($sharegateOrderId === '') {
+				return ['success' => false, 'error' => $this->l->t('Missing order_id in PayPal refund')];
+			}
+			return [
+				'success' => true,
+				'event_type' => 'refunded',
+				'order_id' => $sharegateOrderId,
+				'status_message' => $this->l->t('Payment refunded'),
+			];
+		}
+
+		if ($type === 'PAYMENT.CAPTURE.COMPLETED') {
 			$sharegateOrderId = (string)($resource['custom_id'] ?? '');
 			if ($sharegateOrderId === '') {
 				/** @var array<string, mixed> $related */

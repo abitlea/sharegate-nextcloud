@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.5 — 2026-06-03
+
+### Added
+- **My purchases** — logged-in buyers see purchase history in the dashboard, download again within the access period, and save to cloud
+- Buyer identity binds to the Nextcloud user ID when logged in; anonymous purchases can be linked after login
+
+### Changed
+- App Store listing copy: align **ShareGate** brand with **Paid sharing / 付费分享** in English and Chinese `summary` and `description` (e.g. `ShareGate (Paid sharing)`), so store title and body read as one product
+
+### Fixed
+- App Store listing i18n: `info.xml` uses **no `lang`** for English default (`name` / `summary` / `description`); `zh-hans` for Simplified Chinese (per [App Store developer guide](https://nextcloudappstore.readthedocs.io/en/latest/developer.html))
+
 ## 1.3.4 — 2026-06-03
 
 ### Added

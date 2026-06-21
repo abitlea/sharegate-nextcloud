@@ -2,9 +2,27 @@
 
 > **语言：** [English](README.md) · 简体中文（本页）
 
-Nextcloud 应用：**安装启用即可用**，无需单独部署 Node 服务。
+**在 Nextcloud 里卖文件 — 内置 Stripe 与 PayPal，无需额外服务器。**
 
-**当前版本** 1.3.4 — 管理台四页（你的共享 · 付费分享 · 账户绑定 · 收益查看）、买家付费页、**Stripe / PayPal / 支付宝当面付**、站内转存、中英双语界面（`en` / `zh_CN`）。
+ShareGate（**付费分享**）让你在网盘内为文件生成**付费下载链接**。安装并启用即可使用；文件与买家访问权限留在**你的** Nextcloud 实例上（自托管、AGPL）。
+
+### 为什么选择 ShareGate？
+
+| | |
+|---|---|
+| **自托管** | 数字商品留在你的服务器 — 若已使用 Nextcloud，可替代 Gumroad 类 SaaS |
+| **Stripe 与 PayPal** | 国际买家熟悉的 Checkout + Webhook（可选支付宝当面付，面向国内卖家） |
+| **卖家管理台** | 浏览文件、创建付费链接、设价格/授权天数/有效期、收款明细与统计 |
+| **买家体验** | 简洁付费页 → 支付 → 下载；**我的已购**与同一实例内可选站内转存 |
+| **无第二套服务** | 纯 PHP 应用，运行在 Nextcloud 内 — 无需部署 Node.js ShareGate 服务 |
+
+**安装：** Nextcloud **应用** → **付费分享**（商店上架后）或下方 [手动安装](#安装)（GitHub）。
+
+**当前版本** 1.3.5 — 管理台（你的共享 · 付费分享 · 账户绑定 · 收款明细 · 收益查看）、买家 **我的已购**、付费页、**Stripe / PayPal**（+ 支付宝当面付）、站内转存、中英双语界面（`en` / `zh_CN`）。
+
+**链接：** [GitHub](https://github.com/abitlea/sharegate-nextcloud) · [Issues 与反馈](https://github.com/abitlea/sharegate-nextcloud/issues) · [应用商店](https://apps.nextcloud.com/apps/sharegate)（上架后）
+
+---
 
 ## 要求
 
@@ -29,10 +47,11 @@ composer install --no-dev
 
 多实例部署见 [docs/RELEASE.md](docs/RELEASE.md)（DietPi `/nextcloud` vs Docker `:8080`）。
 
-3. 侧栏四页：
+3. 侧栏页面：
    - **你的共享** — 网盘文件，未分享行点「添加分享」
    - **付费分享** — 复制链接 / 编辑 / 取消分享
    - **账户绑定** — 管理员配置 **Stripe、PayPal 或支付宝**（Mock 仅开发环境）
+   - **收款明细** — 按订单查看收款记录、支付账号、金额与状态
    - **收益查看** — 预览、转存、下载次数
 
 创建分享：`/apps/sharegate/embed/create`，支持 `?path=Documents/a.pdf&name=a.pdf` 预填。
@@ -41,9 +60,10 @@ composer install --no-dev
 
 访问卖家短链 `/apps/sharegate/s/{shareId}`：
 
-- **支付宝**：扫码支付
-- **Stripe / PayPal**：跳转 Checkout 完成支付
+- **Stripe / PayPal**：跳转 Checkout 完成支付（面向国际买家）
+- **支付宝**：扫码支付（面向国内卖家）
 - 支付成功后下载；已登录本站用户可「保存到我的 Nextcloud」（`ShareGate/` 目录）
+- 已登录用户可在买家下载页通过 **我的已购** 查看购买记录并在有效期内再次下载
 
 ## 支付配置
 

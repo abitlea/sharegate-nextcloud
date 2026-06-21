@@ -34,7 +34,7 @@ class SaveToCloudService {
 	/**
 	 * @return array{success: true, path: string, file_name: string}|array{success: false, error: string}
 	 */
-	public function saveToCloud(string $shareId, string $providerUserId, string $targetUserId): array {
+	public function saveToCloud(string $shareId, ?string $providerUserId, string $targetUserId, ?string $accessToken = null): array {
 		if ($targetUserId === '') {
 			return [
 				'success' => false,
@@ -42,14 +42,20 @@ class SaveToCloudService {
 			];
 		}
 
-		if ($providerUserId === '') {
+		$providerUserId = $providerUserId !== null ? trim($providerUserId) : '';
+		$accessToken = $accessToken !== null ? trim($accessToken) : '';
+		if ($providerUserId === '' && $accessToken === '') {
 			return [
 				'success' => false,
 				'error' => $this->l->t('Missing provider_user_id'),
 			];
 		}
 
-		$verify = $this->downloadService->verifyDownload($shareId, $providerUserId);
+		$verify = $this->downloadService->verifyDownload(
+			$shareId,
+			$providerUserId !== '' ? $providerUserId : null,
+			$accessToken !== '' ? $accessToken : null,
+		);
 		if (!($verify['success'] ?? false)) {
 			return [
 				'success' => false,

@@ -45,13 +45,16 @@
 					:value.sync="form.title"
 					required />
 				<NcTextField
-					:label="t('Price (CNY)')"
+					:label="priceFieldLabel"
 					type="number"
 					:show-trailing-button="false"
-					:value.sync="form.priceYuan"
-					:min="0.01"
-					step="0.01"
+					:value.sync="form.priceAmount"
+					:min="priceInput.min"
+					:step="priceInput.step"
 					required />
+				<p class="sg-sidebar-form__note">
+					{{ priceChargedHint }} · {{ priceFieldHint }}
+				</p>
 				<NcTextField
 					:label="t('Access days after payment')"
 					type="number"
@@ -99,6 +102,15 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { getShareSettings, updateShareSettings } from '../utils/api.js'
+import {
+	getDisplayCurrency,
+	majorAmountToMinor,
+	minorAmountToMajor,
+	minimumPriceHint,
+	priceChargedInHint,
+	priceColumnLabel,
+	priceInputConfig,
+} from '../utils/currency.js'
 
 const TAB_ID = 'sharegate-settings'
 
@@ -115,6 +127,7 @@ export default {
 	props: {
 		open: { type: Boolean, default: false },
 		shareId: { type: String, default: '' },
+		displayCurrency: { type: String, default: 'CNY' },
 	},
 	emits: ['update:open', 'saved'],
 	data() {
@@ -124,6 +137,7 @@ export default {
 			saving: false,
 			loadError: '',
 			error: '',
+			settingsCurrency: '',
 			form: this.emptyForm(),
 		}
 	},
@@ -143,6 +157,21 @@ export default {
 			return this.form.file_name
 				|| this.form.title
 				|| this.t('Paid share settings')
+		},
+		priceFieldLabel() {
+			return priceColumnLabel(this.effectiveCurrency)
+		},
+		priceFieldHint() {
+			return minimumPriceHint(this.effectiveCurrency)
+		},
+		priceChargedHint() {
+			return priceChargedInHint(this.effectiveCurrency)
+		},
+		priceInput() {
+			return priceInputConfig(this.effectiveCurrency)
+		},
+		effectiveCurrency() {
+			return this.settingsCurrency || this.displayCurrency || getDisplayCurrency()
 		},
 	},
 	watch: {
@@ -164,7 +193,7 @@ export default {
 				file_path: '',
 				file_name: '',
 				title: '',
-				priceYuan: '',
+				priceAmount: '',
 				access_days: '30',
 				share_expire_days: '',
 				share_url: '',
@@ -175,6 +204,7 @@ export default {
 			this.saving = false
 			this.loadError = ''
 			this.error = ''
+			this.settingsCurrency = ''
 			this.form = this.emptyForm()
 		},
 		onClose() {
@@ -193,12 +223,16 @@ export default {
 					this.loadError = data.error || this.t('Loading failed')
 					return
 				}
+				if (data.display_currency) {
+					this.settingsCurrency = data.display_currency
+				}
 				const share = data.share
+				const currency = this.effectiveCurrency
 				this.form = {
 					file_path: share.file_path || '',
 					file_name: share.file_name || '',
 					title: share.title || '',
-					priceYuan: (share.price / 100).toFixed(2),
+					priceAmount: minorAmountToMajor(share.price, currency),
 					access_days: String(share.access_days || 30),
 					share_expire_days: share.share_expire_days == null ? '' : String(share.share_expire_days),
 					share_url: share.share_url || '',
@@ -211,7 +245,7 @@ export default {
 		},
 		async save() {
 			const title = String(this.form.title || '').trim()
-			const priceYuan = parseFloat(this.form.priceYuan)
+			const priceAmount = parseFloat(this.form.priceAmount)
 			const accessDays = parseInt(String(this.form.access_days), 10)
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
@@ -219,7 +253,7 @@ export default {
 				this.error = this.t('Please enter a share title')
 				return
 			}
-			if (!priceYuan || priceYuan <= 0) {
+			if (!priceAmount || priceAmount <= 0) {
 				this.error = this.t('Price must be greater than 0')
 				return
 			}
@@ -230,7 +264,7 @@ export default {
 
 			const body = {
 				title,
-				price: Math.round(priceYuan * 100),
+				price: majorAmountToMinor(priceAmount, this.effectiveCurrency),
 				access_days: accessDays,
 				share_expire_days: expireStr === '' ? null : parseInt(expireStr, 10),
 			}

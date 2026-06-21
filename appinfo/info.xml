@@ -2,33 +2,71 @@
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>sharegate</id>
-    <name lang="en">Paid sharing</name>
+    <name>Paid sharing</name>
     <name lang="zh-hans">付费分享</name>
-    <summary lang="en">Paid file sharing — save to cloud, Stripe, PayPal, Alipay, and revenue dashboard</summary>
-    <summary lang="zh-hans">付费文件分享 — 站内转存、Stripe、PayPal、支付宝与收益统计</summary>
-    <description lang="en"><![CDATA[Create paid public links for files in Nextcloud. After payment, buyers can download the file or **save it to their account on this server** (same-instance save to cloud).
+    <summary>ShareGate — paid file sharing for Nextcloud — Stripe, PayPal, Alipay, seller dashboard, payment ledger, save-to-cloud, and My purchases</summary>
+    <summary lang="zh-hans">ShareGate · Nextcloud 付费文件分享 — Stripe、PayPal、支付宝当面付、卖家管理台、收款明细、站内转存与我的已购</summary>
+    <description><![CDATA[**ShareGate (Paid sharing)** turns files in your Nextcloud into **paid download links**. Install and enable the app — **no separate ShareGate server** or Node.js service required. Sellers get a dashboard in the Nextcloud sidebar; buyers pay on a clean download page and receive time-limited access.
 
-**Dashboard**: Your shares · Paid shares · Account binding · Revenue (preview, save-to-cloud, and download counts)
+### For sellers
 
-- **Save to cloud**: logged-in buyers copy purchased files into their `ShareGate/` folder
-- Alipay Face-to-Face (sandbox or production), Stripe Checkout, and PayPal Checkout
-- Seller dashboard in the Nextcloud sidebar
-- No separate ShareGate server required
+- **Your shares** — browse your files and create a paid link from any row
+- **Paid shares** — copy links, edit price / access days / expiry, or cancel a share
+- **Account binding** — Nextcloud admin configures **Stripe**, **PayPal**, or **Alipay Face-to-Face** (Mock mode for development only)
+- **Payment ledger** — per-order records with amount, status, and payer account (including masked Alipay logon where available)
+- **Statistics** — preview, save-to-cloud, and download counts per share
 
-Compatible with Nextcloud 28–33.
+Set price and how long buyers may download after payment. Share short links like `/apps/sharegate/s/{shareId}`.
+
+### For buyers
+
+- **Paywall** — Alipay QR scan, or redirect to **Stripe Checkout** / **PayPal Checkout**
+- **Download** after payment, within the configured access period
+- **Cross-device link** — copy a signed link to open the same purchase on another browser or phone
+- **Recover access** — already paid? Enter the payment account used at checkout to restore download rights
+- **Save to my Nextcloud** — on the same server, logged-in buyers copy files into a `ShareGate/` folder in their drive
+- **My purchases** — view purchase history and download again (verify with payment account in private browsing)
+
+### Payments & setup
+
+- **Alipay Face-to-Face** — China; sandbox or production; async notify URL supported
+- **Stripe Checkout** — international cards and wallets
+- **PayPal Checkout** — international PayPal buyers
+- Admin: **Settings → Paid sharing**, or dashboard **Account binding**
+
+Bilingual UI (**English** / **简体中文**). Compatible with **Nextcloud 28–33**.
     ]]></description>
-    <description lang="zh-hans"><![CDATA[在 Nextcloud 内为网盘文件创建付费外链。买家支付后可下载文件，或**转存到本站 Nextcloud 账户**（同一实例站内转存）。
+    <description lang="zh-hans"><![CDATA[**ShareGate（付费分享）** 让你在 Nextcloud 网盘内为文件生成**付费下载外链**。安装并启用即可使用，**无需单独部署 ShareGate 服务**或 Node.js 进程。卖家通过侧栏管理台运营；买家在独立付费页完成支付并获得限时下载权限。
 
-**管理台四页**：你的共享 · 付费分享 · 账户绑定 · 收益查看（预览 / 转存 / 下载）
+### 卖家功能
 
-- **站内转存**：已登录买家将已购文件复制到网盘 `ShareGate/` 目录
-- 支付宝当面付（沙箱/生产）、Stripe Checkout、PayPal Checkout
-- 卖家管理台融入 NC 全局侧栏
-- 无需单独部署 ShareGate 服务
+- **你的共享** — 浏览网盘文件，在未分享的文件行上创建付费链接
+- **付费分享** — 复制短链、编辑价格 / 授权天数 / 链接有效期，或取消分享
+- **账户绑定** — 管理员配置 **Stripe**、**PayPal** 或 **支付宝当面付**（Mock 仅用于开发测试）
+- **收款明细** — 按订单查看金额、状态与支付账号（支付宝可显示 UID 与脱敏登录名）
+- **收益查看** — 各分享的预览、站内转存与下载次数统计
 
-兼容 Nextcloud 28–33。
+设定价格与付款后可下载的天数，分享短链形如 `/apps/sharegate/s/{shareId}`。
+
+### 买家功能
+
+- **付费页** — 支付宝扫码，或跳转 **Stripe Checkout** / **PayPal Checkout**
+- **付款后下载**，在授权有效期内可多次下载
+- **跨设备链接** — 复制签名链接，在手机或其他浏览器打开同一笔购买
+- **恢复访问** — 已付款？输入结账时使用的支付账号即可找回下载权限
+- **保存到我的 Nextcloud** — 同一实例内，已登录买家将文件复制到网盘 `ShareGate/` 目录
+- **我的已购** — 查看购买记录并再次下载（无痕浏览器可用支付账号验证身份）
+
+### 支付与配置
+
+- **支付宝当面付** — 国内买家；支持沙箱与生产环境；可配置异步通知 URL
+- **Stripe Checkout** — 国际卡与钱包支付
+- **PayPal Checkout** — 国际 PayPal 买家
+- 管理入口：**设置 → 付费分享**，或管理台 **账户绑定**
+
+界面支持 **English** / **简体中文** 双语。兼容 **Nextcloud 28–33**。
     ]]></description>
-    <version>1.3.4</version>
+    <version>1.3.5</version>
     <licence>agpl</licence>
     <author mail="abitlea@126.com">abitlea</author>
     <namespace>ShareGate</namespace>

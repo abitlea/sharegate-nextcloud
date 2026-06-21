@@ -274,6 +274,7 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import FilesListBreadcrumbs from './FilesListBreadcrumbs.vue'
 import { loadAccountSettings, loadPaymentConfig, savePaymentConfig } from '../utils/api.js'
 import { getDashboardConfig } from '../utils/config.js'
+import { setDisplayCurrency } from '../utils/currency.js'
 import { showError, showTemporary } from '../utils/notify.js'
 
 const SEARCH_SECTIONS = {
@@ -565,6 +566,9 @@ export default {
 			if (!summary) {
 				return
 			}
+			if (summary.display_currency) {
+				setDisplayCurrency(summary.display_currency)
+			}
 			this.mockSelectable = summary.mock_selectable === true
 			if (Array.isArray(summary.providers)) {
 				this.providers = summary.providers
@@ -625,6 +629,9 @@ export default {
 				}
 				if (data.account) {
 					this.account = data.account
+					if (data.account.display_currency) {
+						setDisplayCurrency(data.account.display_currency)
+					}
 					if (Array.isArray(data.account.providers)) {
 						this.providers = data.account.providers
 					}

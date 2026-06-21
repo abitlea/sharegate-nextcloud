@@ -75,8 +75,8 @@
 						<FileNameCell :row="row" @activate="openFile" />
 						<td>{{ shareStatusLabel(row.share_status_label) }}</td>
 						<td>{{ formatShareDate(row.created_at) }}</td>
-						<td>{{ formatPriceYuan(row.price) }}</td>
-						<td>{{ formatPriceYuan(row.revenue || 0) }}</td>
+						<td>{{ formatMoney(row.price) }}</td>
+						<td>{{ formatMoney(row.revenue || 0) }}</td>
 						<td>{{ row.preview_count || 0 }}</td>
 						<td>{{ row.save_count || 0 }}</td>
 						<td>{{ row.download_count || 0 }}</td>
@@ -101,7 +101,8 @@ import FilesListBreadcrumbs from './FilesListBreadcrumbs.vue'
 import { loadStats } from '../utils/api.js'
 import { openUserFile } from '../utils/files.js'
 import { showTemporary } from '../utils/notify.js'
-import { formatShareDate, formatPriceYuan } from '../utils/format.js'
+import { formatShareDate } from '../utils/format.js'
+import { formatMoney, priceColumnLabel, revenueColumnLabel } from '../utils/currency.js'
 import { guessMimeFromFileName, mimeCategory } from '../utils/mime.js'
 
 export default {
@@ -121,6 +122,10 @@ export default {
 		searchQuery: {
 			type: String,
 			default: '',
+		},
+		displayCurrency: {
+			type: String,
+			default: 'CNY',
 		},
 	},
 	data() {
@@ -174,12 +179,13 @@ export default {
 			return this.t('No statistics yet')
 		},
 		columns() {
+			const currency = this.displayCurrency
 			return [
 				{ key: 'name', label: this.t('File') },
 				{ key: 'status', label: this.t('Share status') },
 				{ key: 'time', label: this.t('Share time') },
-				{ key: 'price', label: this.t('Price (yuan)') },
-				{ key: 'revenue', label: this.t('Revenue (yuan)') },
+				{ key: 'price', label: priceColumnLabel(currency) },
+				{ key: 'revenue', label: revenueColumnLabel(currency) },
 				{ key: 'preview', label: this.t('Preview count') },
 				{ key: 'save', label: this.t('Save to cloud count') },
 				{ key: 'download', label: this.t('Download count') },
@@ -191,7 +197,9 @@ export default {
 	},
 	methods: {
 		formatShareDate,
-		formatPriceYuan,
+		formatMoney(cents) {
+			return formatMoney(cents, this.displayCurrency)
+		},
 		t,
 		rowMime(row) {
 			return row.mime_type || guessMimeFromFileName(row.file_name)

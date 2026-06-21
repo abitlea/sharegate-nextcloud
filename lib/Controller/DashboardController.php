@@ -8,6 +8,7 @@ use OCA\ShareGate\AppInfo\Application;
 use OCA\ShareGate\Util\CspNonce;
 use OCA\ShareGate\Service\DashboardService;
 use OCA\ShareGate\Service\PaymentConfigService;
+use OCA\ShareGate\Service\PaymentLedgerService;
 use OCA\ShareGate\Service\ShareService;
 use OCA\ShareGate\Service\ShareStatsService;
 use OCP\AppFramework\Controller;
@@ -16,6 +17,8 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IGroupManager;
+use OCP\IL10N;
+use OCP\L10N\IFactory;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\ISession;
@@ -29,9 +32,11 @@ class DashboardController extends Controller {
 		private ShareService $shareService,
 		private PaymentConfigService $paymentConfig,
 		private ShareStatsService $shareStatsService,
+		private PaymentLedgerService $paymentLedgerService,
 		private IGroupManager $groupManager,
 		private IURLGenerator $urlGenerator,
 		private ISession $session,
+		private IFactory $l10nFactory,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -50,11 +55,15 @@ class DashboardController extends Controller {
 		$shareIdPlaceholder = '__SHARE_ID__';
 		$config = [
 			'isAdmin' => $isAdmin,
+			'userId' => $userId ?? '',
 			'dashboardUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.index'),
 			'publicLinksUrl' => $this->urlGenerator->linkToRoute('sharegate.files.publicLinks'),
 			'summaryUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.summary'),
 			'accountUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.account'),
 			'statsUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.stats'),
+			'paymentLedgerUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.paymentLedger'),
+			'linkPurchasesUrl' => $this->urlGenerator->linkToRoute('sharegate.buyer.linkPurchases'),
+			'paymentVerifyUrl' => $this->urlGenerator->linkToRoute('sharegate.payment.verify'),
 			'listUrl' => $this->urlGenerator->linkToRoute('sharegate.dashboard.list'),
 			'createUrl' => $this->urlGenerator->linkToRoute('sharegate.share.createEmbed'),
 			'createShareUrl' => $this->urlGenerator->linkToRoute('sharegate.share.createShare'),
@@ -72,6 +81,7 @@ class DashboardController extends Controller {
 				['shareId' => $shareIdPlaceholder],
 			),
 			'requestToken' => (string)$this->session->get('requesttoken'),
+			'display_currency' => $this->paymentConfig->getDisplayCurrency(),
 		];
 
 		if ($isAdmin) {
@@ -95,7 +105,7 @@ class DashboardController extends Controller {
 	public function summary(): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
 		if ($userId === null) {
-			return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+			return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 		}
 
 		$isAdmin = $this->groupManager->isAdmin($userId);
@@ -103,6 +113,7 @@ class DashboardController extends Controller {
 		$payload = ['success' => true];
 		try {
 			$payload['filters'] = $this->dashboardService->getFilterCounts($userId);
+			$payload['filters']['ledger'] = $this->paymentLedgerService->countForSeller($userId);
 		} catch (\Throwable $e) {
 			$payload['filters'] = [
 				DashboardService::FILTER_ALL => 0,
@@ -120,7 +131,7 @@ class DashboardController extends Controller {
 		} catch (\Throwable $e) {
 			return new DataResponse([
 				'success' => false,
-				'error' => '账户摘要失败: ' . $e->getMessage(),
+				'error' => $this->l10n()->t('Account summary failed: %s', [$e->getMessage()]),
 			], 500);
 		}
 
@@ -132,7 +143,7 @@ class DashboardController extends Controller {
 	public function account(): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
 		if ($userId === null) {
-			return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+			return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 		}
 
 		$isAdmin = $this->groupManager->isAdmin($userId);
@@ -149,7 +160,32 @@ class DashboardController extends Controller {
 		} catch (\Throwable $e) {
 			return new DataResponse([
 				'success' => false,
-				'error' => '账户接口失败: ' . $e->getMessage(),
+				'error' => $this->l10n()->t('Account API failed: %s', [$e->getMessage()]),
+			], 500);
+		}
+	}
+
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function paymentLedger(): DataResponse {
+		try {
+			$userId = $this->shareService->getCurrentUserId();
+			if ($userId === null) {
+				return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
+			}
+
+			$status = (string)$this->request->getParam('status', PaymentLedgerService::STATUS_ALL);
+			$search = trim((string)$this->request->getParam('q', ''));
+			$limit = min(200, max(1, (int)$this->request->getParam('limit', 50)));
+			$offset = max(0, (int)$this->request->getParam('offset', 0));
+
+			$result = $this->paymentLedgerService->listForSeller($userId, $status, $search, $limit, $offset);
+			$httpStatus = ($result['success'] ?? false) ? 200 : 400;
+			return new DataResponse($result, $httpStatus);
+		} catch (\Throwable $e) {
+			return new DataResponse([
+				'success' => false,
+				'error' => $this->l10n()->t('Failed to load payment ledger: %s', [$e->getMessage()]),
 			], 500);
 		}
 	}
@@ -160,7 +196,7 @@ class DashboardController extends Controller {
 		try {
 			$userId = $this->shareService->getCurrentUserId();
 			if ($userId === null) {
-				return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+				return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 			}
 
 			$result = $this->shareStatsService->listForSeller($userId);
@@ -169,7 +205,7 @@ class DashboardController extends Controller {
 		} catch (\Throwable $e) {
 			return new DataResponse([
 				'success' => false,
-				'error' => '统计接口失败: ' . $e->getMessage(),
+				'error' => $this->l10n()->t('Statistics API failed: %s', [$e->getMessage()]),
 			], 500);
 		}
 	}
@@ -180,7 +216,7 @@ class DashboardController extends Controller {
 		try {
 			$userId = $this->shareService->getCurrentUserId();
 			if ($userId === null) {
-				return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+				return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 			}
 
 			$filter = (string)$this->request->getParam('filter', DashboardService::FILTER_ALL);
@@ -200,7 +236,7 @@ class DashboardController extends Controller {
 			$status = ($result['success'] ?? false) ? 200 : 400;
 			return new DataResponse($result, $status);
 		} catch (\Throwable $e) {
-			$message = '分享列表失败: ' . $e->getMessage();
+			$message = $this->l10n()->t('Share list failed: %s', [$e->getMessage()]);
 			\OCP\Server::get(\Psr\Log\LoggerInterface::class)->error(
 				'ShareGate dashboard list failed',
 				['exception' => $e],
@@ -210,6 +246,10 @@ class DashboardController extends Controller {
 				'error' => $this->safeApiText($message),
 			], 500);
 		}
+	}
+
+	private function l10n(): IL10N {
+		return $this->l10nFactory->get(Application::APP_ID);
 	}
 
 	private function safeApiText(string $text): string {

@@ -115,7 +115,7 @@
 									</a>
 								</td>
 								<td>{{ formatShareDate(row.created_at) }}</td>
-								<td>{{ formatPriceYuan(row.price) }}</td>
+								<td>{{ formatMoney(row.price) }}</td>
 								<td @click.stop>
 									<a
 										href="#"
@@ -192,7 +192,8 @@ import FilesListBreadcrumbs from './FilesListBreadcrumbs.vue'
 import { loadShares } from '../utils/api.js'
 import { openUserFile } from '../utils/files.js'
 import { guessMimeFromFileName, mimeCategory } from '../utils/mime.js'
-import { formatSize, formatRelativeDate, formatShareDate, formatPriceYuan, buildPublicUrl } from '../utils/format.js'
+import { formatSize, formatRelativeDate, formatShareDate, buildPublicUrl } from '../utils/format.js'
+import { formatMoney, priceColumnLabel } from '../utils/currency.js'
 import { setHash } from '../utils/hashRouter.js'
 
 const PAGE_SIZE = 50
@@ -215,6 +216,7 @@ export default {
 	props: {
 		filter: { type: String, default: 'all' },
 		searchQuery: { type: String, default: '' },
+		displayCurrency: { type: String, default: 'CNY' },
 	},
 	emits: ['open-settings', 'disable-share', 'open-create', 'counts-changed'],
 	data() {
@@ -306,7 +308,7 @@ export default {
 					{ key: 'name', label: this.t('File name') },
 					{ key: 'copy', label: this.t('Copy link') },
 					{ key: 'time', label: this.t('Share time') },
-					{ key: 'price', label: this.t('Price (CNY)') },
+					{ key: 'price', label: priceColumnLabel(this.displayCurrency) },
 					{ key: 'settings', label: this.t('Paid settings') },
 					{ key: 'actions', label: this.t('Cancel share') },
 				]
@@ -349,7 +351,9 @@ export default {
 		formatSize,
 		formatRelativeDate,
 		formatShareDate,
-		formatPriceYuan,
+		formatMoney(cents) {
+			return formatMoney(cents, this.displayCurrency)
+		},
 		t,
 		matchesTypeFilter(row) {
 			const cat = mimeCategory(this.rowMime(row))

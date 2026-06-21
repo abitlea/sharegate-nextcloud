@@ -26,7 +26,7 @@
 					:show-trailing-button="false"
 					:value="successUrl" />
 				<div class="sg-sidebar-form__meta">
-					{{ t('Price') }}: ¥{{ successPrice }} ·
+					{{ t('Price') }}: {{ successPriceDisplay }} ·
 					{{ t('Access days') }}: {{ successAccessDays }}
 					{{ t('days') }}
 				</div>
@@ -68,13 +68,16 @@
 					:placeholder="t('e.g. Paid document')"
 					required />
 				<NcTextField
-					:label="t('Price (CNY)')"
+					:label="priceFieldLabel"
 					type="number"
 					:show-trailing-button="false"
-					:value.sync="form.priceYuan"
-					:min="0.01"
-					step="0.01"
+					:value.sync="form.priceAmount"
+					:min="priceInput.min"
+					:step="priceInput.step"
 					required />
+				<p class="sg-sidebar-form__note">
+					{{ priceChargedHint }} · {{ priceFieldHint }}
+				</p>
 				<NcTextField
 					:label="t('Access days after payment')"
 					type="number"
@@ -117,6 +120,15 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { createShare } from '../utils/api.js'
 import { buildPublicUrl } from '../utils/format.js'
+import {
+	formatMoney,
+	getDisplayCurrency,
+	majorAmountToMinor,
+	minimumPriceHint,
+	priceChargedInHint,
+	priceColumnLabel,
+	priceInputConfig,
+} from '../utils/currency.js'
 const TAB_ID = 'sharegate-create'
 
 export default {
@@ -134,6 +146,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+		displayCurrency: { type: String, default: 'CNY' },
 	},
 	data() {
 		return {
@@ -143,7 +156,7 @@ export default {
 			existingShareId: '',
 			success: false,
 			successUrl: '',
-			successPrice: '',
+			successPriceCents: 0,
 			successAccessDays: 0,
 			fileSize: 0,
 			fileId: 0,
@@ -169,6 +182,24 @@ export default {
 			return this.form.file_name
 				|| this.t('Create paid share')
 		},
+		priceFieldLabel() {
+			return priceColumnLabel(this.effectiveCurrency)
+		},
+		priceFieldHint() {
+			return minimumPriceHint(this.effectiveCurrency)
+		},
+		priceChargedHint() {
+			return priceChargedInHint(this.effectiveCurrency)
+		},
+		priceInput() {
+			return priceInputConfig(this.effectiveCurrency)
+		},
+		effectiveCurrency() {
+			return this.displayCurrency || getDisplayCurrency()
+		},
+		successPriceDisplay() {
+			return formatMoney(this.successPriceCents, this.effectiveCurrency)
+		},
 	},
 	watch: {
 		open(val) {
@@ -192,7 +223,7 @@ export default {
 				file_path: '',
 				file_name: '',
 				title: '',
-				priceYuan: '1.00',
+				priceAmount: '1.00',
 				access_days: '30',
 				share_expire_days: '',
 			}
@@ -224,7 +255,7 @@ export default {
 			this.existingShareId = ''
 			this.success = false
 			this.successUrl = ''
-			this.successPrice = ''
+			this.successPriceCents = 0
 			this.successAccessDays = 0
 			this.fileSize = 0
 			this.fileId = 0
@@ -245,7 +276,7 @@ export default {
 			const filePath = String(this.form.file_path || '').trim()
 			const fileName = String(this.form.file_name || '').trim()
 			const title = String(this.form.title || '').trim()
-			const priceYuan = parseFloat(this.form.priceYuan)
+			const priceAmount = parseFloat(this.form.priceAmount)
 			const accessDays = parseInt(String(this.form.access_days), 10)
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
@@ -253,7 +284,7 @@ export default {
 				this.error = this.t('Please fill file path, name and title')
 				return
 			}
-			if (!priceYuan || priceYuan <= 0) {
+			if (!priceAmount || priceAmount <= 0) {
 				this.error = this.t('Price must be greater than 0')
 				return
 			}
@@ -267,7 +298,7 @@ export default {
 				file_name: fileName,
 				storage_type: 'nextcloud',
 				title,
-				price: Math.round(priceYuan * 100),
+				price: majorAmountToMinor(priceAmount, this.effectiveCurrency),
 				access_days: accessDays,
 			}
 			if (this.fileSize > 0) {
@@ -292,7 +323,7 @@ export default {
 				}
 				const sharePath = data.share_url || ('/apps/sharegate/s/' + data.share_id)
 				this.successUrl = buildPublicUrl(sharePath)
-				this.successPrice = (data.price / 100).toFixed(2)
+				this.successPriceCents = data.price
 				this.successAccessDays = data.access_days
 				this.success = true
 				this.$emit('created', data)

@@ -8,7 +8,14 @@ return [
 		['name' => 'dashboard#summary', 'url' => '/api/dashboard/summary', 'verb' => 'GET'],
 		['name' => 'dashboard#account', 'url' => '/api/dashboard/account', 'verb' => 'GET'],
 		['name' => 'dashboard#stats', 'url' => '/api/dashboard/stats', 'verb' => 'GET'],
+		['name' => 'dashboard#paymentLedger', 'url' => '/api/dashboard/payment-ledger', 'verb' => 'GET'],
 		['name' => 'dashboard#list', 'url' => '/api/dashboard/shares', 'verb' => 'GET'],
+
+		['name' => 'buyer#index', 'url' => '/buyer/purchases', 'verb' => 'GET'],
+		['name' => 'buyer#purchases', 'url' => '/api/buyer/purchases', 'verb' => 'GET'],
+		['name' => 'buyer#linkPurchases', 'url' => '/api/buyer/link-purchases', 'verb' => 'POST'],
+		['name' => 'buyer#recoverAccess', 'url' => '/api/buyer/recover-access/{shareId}', 'verb' => 'POST'],
+		['name' => 'buyer#verifyPayer', 'url' => '/api/buyer/verify-payer', 'verb' => 'POST'],
 		['name' => 'files#publicLinks', 'url' => '/api/files/public-links', 'verb' => 'GET'],
 
 		['name' => 'share#createEmbed', 'url' => '/embed/create', 'verb' => 'GET'],

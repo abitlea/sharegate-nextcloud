@@ -31,12 +31,42 @@ class PaymentMapper extends QBMapper {
 	/**
 	 * @throws Exception
 	 */
+	/**
+	 * @throws Exception
+	 */
+	public function reassignClientUserId(string $fromUserId, string $toUserId): void {
+		if ($fromUserId === '' || $toUserId === '' || $fromUserId === $toUserId) {
+			return;
+		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('client_user_id', $qb->createNamedParameter($toUserId))
+			->where($qb->expr()->eq('client_user_id', $qb->createNamedParameter($fromUserId)));
+		$qb->executeStatement();
+	}
+
 	public function findLatestPaidByShareAndClientUser(string $shareId, string $clientUserId): ?Payment {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('share_id', $qb->createNamedParameter($shareId)))
 			->andWhere($qb->expr()->eq('client_user_id', $qb->createNamedParameter($clientUserId)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('paid')))
+			->orderBy('paid_at', 'DESC')
+			->setMaxResults(1);
+
+		try {
+			return $this->findEntity($qb);
+		} catch (DoesNotExistException) {
+			return null;
+		}
+	}
+
+	public function findLatestPaidByShare(string $shareId): ?Payment {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('share_id', $qb->createNamedParameter($shareId)))
 			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('paid')))
 			->orderBy('paid_at', 'DESC')
 			->setMaxResults(1);
@@ -207,6 +237,86 @@ class PaymentMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 		$qb->selectAlias($qb->createFunction('COUNT(*)'), 'cnt')
 			->from($this->getTableName());
+		$result = $qb->executeQuery();
+		$row = $result->fetch();
+		$result->closeCursor();
+		return (int)($row['cnt'] ?? 0);
+	}
+
+	/**
+	 * @param list<string> $shareIds
+	 * @return Payment[]
+	 * @throws Exception
+	 */
+	public function findLedgerByShareIds(
+		array $shareIds,
+		?string $status,
+		string $search,
+		int $limit,
+		int $offset,
+	): array {
+		if ($shareIds === []) {
+			return [];
+		}
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->in('share_id', $qb->createNamedParameter($shareIds, IQueryBuilder::PARAM_STR_ARRAY)));
+
+		if ($status !== null && $status !== '' && $status !== 'all') {
+			$qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+		}
+
+		$search = trim($search);
+		if ($search !== '') {
+			$like = '%' . $this->db->escapeLikeParameter($search) . '%';
+			$qb->andWhere($qb->expr()->orX(
+				$qb->expr()->like('order_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('share_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('provider_order_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('client_user_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('status_message', $qb->createNamedParameter($like)),
+			));
+		}
+
+		$qb->orderBy('created_at', 'DESC')
+			->setMaxResults(max(1, min(200, $limit)))
+			->setFirstResult(max(0, $offset));
+
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * @param list<string> $shareIds
+	 * @throws Exception
+	 */
+	public function countLedgerByShareIds(array $shareIds, ?string $status, string $search): int {
+		if ($shareIds === []) {
+			return 0;
+		}
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->createFunction('COUNT(*)'), 'cnt')
+			->from($this->getTableName())
+			->where($qb->expr()->in('share_id', $qb->createNamedParameter($shareIds, IQueryBuilder::PARAM_STR_ARRAY)));
+
+		if ($status !== null && $status !== '' && $status !== 'all') {
+			$qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+		}
+
+		$search = trim($search);
+		if ($search !== '') {
+			$like = '%' . $this->db->escapeLikeParameter($search) . '%';
+			$qb->andWhere($qb->expr()->orX(
+				$qb->expr()->like('order_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('share_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('provider_order_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('client_user_id', $qb->createNamedParameter($like)),
+				$qb->expr()->like('status_message', $qb->createNamedParameter($like)),
+			));
+		}
+
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
 		$result->closeCursor();

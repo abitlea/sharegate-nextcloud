@@ -1,6 +1,7 @@
 const NAV_HASH_ALIASES = {
 	'sg-nav-public': 'public',
 	'sg-nav-paid': 'paid',
+	'sg-nav-ledger': 'ledger',
 	'sg-nav-account': 'account',
 	'sg-nav-stats': 'stats',
 }
@@ -19,6 +20,8 @@ export function parseHash(hash = window.location.hash) {
 		return { view: 'list', filter: 'active', hash: 'paid' }
 	case 'stats':
 		return { view: 'stats', filter: null, hash: 'stats' }
+	case 'ledger':
+		return { view: 'ledger', filter: null, hash: 'ledger' }
 	case 'account':
 		return { view: 'account', filter: null, hash: 'account' }
 	default:

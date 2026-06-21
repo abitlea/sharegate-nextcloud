@@ -7,7 +7,8 @@
  * - 内层 #content-vue 嵌套在 #app-content 里，不得再 fixed/再 margin-top（否则盖住顶栏或双偏移）
  */
 #content.app-sharegate #app-content,
-#content.app-sharegate #sharegate-dashboard.app.sg-app {
+#content.app-sharegate #sharegate-dashboard.app.sg-app,
+#content.app-sharegate #sharegate-buyer-purchases.app.sg-app {
     height: 100%;
     min-height: 0;
     overflow: hidden;
@@ -141,7 +142,11 @@
 }
 
 /* 列表行内文字操作 — 常显 + NC 主题链接色 */
-#content.app-sharegate .sg-shares-panel .sg-table a.action {
+#content.app-sharegate .sg-shares-panel .sg-table a.action,
+#content.app-sharegate .sg-purchases-panel .sg-table a.action,
+#content.app-sharegate .sg-purchases-panel .sg-purchases-table a.action,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-table a.action,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-purchases-table a.action {
     opacity: 1 !important;
     color: var(--color-primary-element);
     text-decoration: none;
@@ -150,13 +155,25 @@
 }
 
 #content.app-sharegate .sg-shares-panel .sg-table a.action:hover,
-#content.app-sharegate .sg-shares-panel .sg-table a.action:focus {
+#content.app-sharegate .sg-shares-panel .sg-table a.action:focus,
+#content.app-sharegate .sg-purchases-panel .sg-table a.action:hover,
+#content.app-sharegate .sg-purchases-panel .sg-table a.action:focus,
+#content.app-sharegate .sg-purchases-panel .sg-purchases-table a.action:hover,
+#content.app-sharegate .sg-purchases-panel .sg-purchases-table a.action:focus,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-table a.action:hover,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-table a.action:focus,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-purchases-table a.action:hover,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-purchases-table a.action:focus {
     color: var(--color-primary-element-hover, var(--color-primary-element));
     text-decoration: none;
     opacity: 1 !important;
 }
 
-#content.app-sharegate .sg-shares-panel .sg-table a.action * {
+#content.app-sharegate .sg-shares-panel .sg-table a.action *,
+#content.app-sharegate .sg-purchases-panel .sg-table a.action *,
+#content.app-sharegate .sg-purchases-panel .sg-purchases-table a.action *,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-table a.action *,
+.sg-buyer-purchases-root .sg-purchases-panel .sg-purchases-table a.action * {
     cursor: pointer;
     color: inherit;
 }

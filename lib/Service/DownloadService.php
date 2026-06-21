@@ -27,7 +27,14 @@ class DownloadService {
 		private ShareFileResolver $shareFileResolver,
 		private IMimeTypeDetector $mimeTypeDetector,
 		private IURLGenerator $urlGenerator,
+		private BuyerAccessTokenService $accessTokenService,
+		private BuyerPurchasesTokenService $purchasesTokenService,
 	) {
+	}
+
+	public function hasDownloadAccess(string $shareId, ?string $providerUserId, ?string $accessToken = null): bool {
+		$result = $this->verifyDownload($shareId, $providerUserId, $accessToken);
+		return (bool)($result['success'] ?? false);
 	}
 
 	public function mimeIconAbsoluteUrl(string $mime): string {
@@ -52,7 +59,7 @@ class DownloadService {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function verifyDownload(string $shareId, ?string $providerUserId): array {
+	public function verifyDownload(string $shareId, ?string $providerUserId, ?string $accessToken = null): array {
 		try {
 			$share = $this->shareMapper->findByShareId($shareId);
 		} catch (DoesNotExistException) {
@@ -71,7 +78,8 @@ class DownloadService {
 			];
 		}
 
-		if ($providerUserId === null || $providerUserId === '') {
+		$credentials = $this->resolveDownloadCredentials($shareId, $providerUserId, $accessToken);
+		if ($credentials === null) {
 			return [
 				'success' => false,
 				'code' => 'MISSING_TOKEN',
@@ -80,8 +88,10 @@ class DownloadService {
 			];
 		}
 
+		$payerId = $credentials['payer_id'];
+
 		try {
-			if (!$this->paymentService->hasUserPaid($shareId, $providerUserId)) {
+			if (!$this->paymentService->hasUserPaid($shareId, $payerId)) {
 				return [
 					'success' => false,
 					'code' => 'ACCESS_DENIED',
@@ -89,7 +99,7 @@ class DownloadService {
 					'error' => '请先扫码支付后再下载',
 				];
 			}
-			$grant = $this->accessGrantMapper->findActive($shareId, $providerUserId);
+			$grant = $this->accessGrantMapper->findActive($shareId, $payerId);
 		} catch (DoesNotExistException|Exception) {
 			return [
 				'success' => false,
@@ -98,12 +108,20 @@ class DownloadService {
 			];
 		}
 
-		$downloadUrl = $this->urlGenerator->linkToRoute(
+		$downloadRoute = $this->urlGenerator->linkToRoute(
 			'sharegate.share.downloadFile',
 			['shareId' => $shareId],
-		) . '?uid=' . rawurlencode($providerUserId);
+		);
+		if ($credentials['access_token'] !== null && $credentials['access_token'] !== '') {
+			$downloadUrl = $this->accessTokenService->appendTokenToDownloadUrl(
+				$downloadRoute,
+				$credentials['access_token'],
+			);
+		} else {
+			$downloadUrl = $downloadRoute . '?uid=' . rawurlencode($payerId);
+		}
 
-		return [
+		$response = [
 			'success' => true,
 			'code' => 'ACCESS_GRANTED',
 			'message' => '下载权限验证通过',
@@ -114,6 +132,53 @@ class DownloadService {
 				? date('c', (int)($grant->getExpiresAt() / 1000))
 				: null,
 			'download_url' => $downloadUrl,
+			'payer_user_id' => $payerId,
+		];
+		if ($credentials['access_token'] !== null && $credentials['access_token'] !== '') {
+			$response['access_token'] = $credentials['access_token'];
+			$response['cross_device_url'] = $this->accessTokenService->buildCrossDeviceViewUrl(
+				$shareId,
+				$credentials['access_token'],
+			);
+		}
+
+		$purchasesToken = $this->purchasesTokenService->createForPayer($payerId);
+		if ($purchasesToken !== '') {
+			$response['purchases_token'] = $purchasesToken;
+			$response['purchases_url'] = $this->purchasesTokenService->buildPurchasesPageUrl($purchasesToken);
+		}
+
+		return $response;
+	}
+
+	/**
+	 * @return array{payer_id: string, access_token: ?string}|null
+	 */
+	private function resolveDownloadCredentials(
+		string $shareId,
+		?string $providerUserId,
+		?string $accessToken,
+	): ?array {
+		$accessToken = $accessToken !== null ? trim($accessToken) : '';
+		if ($accessToken !== '') {
+			$payload = $this->accessTokenService->validate($accessToken, $shareId);
+			if ($payload === null) {
+				return null;
+			}
+			return [
+				'payer_id' => $payload['payer_id'],
+				'access_token' => $accessToken,
+			];
+		}
+
+		$providerUserId = $providerUserId !== null ? trim($providerUserId) : '';
+		if ($providerUserId === '') {
+			return null;
+		}
+
+		return [
+			'payer_id' => $providerUserId,
+			'access_token' => null,
 		];
 	}
 

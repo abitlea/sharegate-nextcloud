@@ -2,6 +2,9 @@
  * ShareGate 买家付费下载页
  */
 import QRCode from 'qrcode'
+import { getBuyerAccountId, payerIdsForAccessCheck, rememberPayerAccount, applyPurchasesSessionFromResponse, buildPurchasesPageUrl, getPurchasesToken, capturePurchasesTokenFromUrl, hasBrowserPurchaseTraces, hasPurchasesToken, isValidPayerAccountId, requiresPaymentAccountLogin, canBootstrapPurchasesToken, shouldShowPurchasesEntry } from '../utils/buyerAccount.js'
+import { bootstrapPurchasesToken, verifyPayerAccount } from '../utils/api.js'
+import { alignAppUrlWithPage } from '../utils/config.js'
 
 (function (global) {
 	'use strict'
@@ -33,20 +36,144 @@ import QRCode from 'qrcode'
 		savedToCloud: 'File saved to your Nextcloud',
 		saveToCloudFailed: 'Save to cloud failed',
 		saveToCloudLoginHint: 'Log in to this Nextcloud account to save the file to your cloud drive.',
+		viewMyPurchases: 'View my purchases',
+		recoverAccessTitle: 'Already paid? Recover download access',
+		recoverAccessHint: 'Enter the full account you used to pay (Alipay phone or email, PayPal or Stripe email). Do not enter the masked account sellers see (e.g. abc***@example.com). Alipay 2088 buyer IDs are also accepted.',
+		recoverAccessPlaceholder: 'Alipay / PayPal / Stripe account used to pay',
+		recoverAccessButton: 'Recover access',
+		recoverAccessFailed: 'Recovery failed',
+		crossDeviceLinkTitle: 'Open on another device',
+		crossDeviceLinkHint: 'Copy this link to download on another browser or phone',
+		copyCrossDeviceLink: 'Copy cross-device link',
+		linkCopied: 'Link copied',
+		purchasesLoginTitle: 'Sign in to view purchases',
+		purchasesLoginHint: 'Enter the full account you used to pay (Alipay phone or email, PayPal or Stripe email). Do not enter the masked account sellers see (e.g. abc***@example.com). Alipay 2088 buyer IDs are also accepted.',
+		purchasesLoginButton: 'View my purchases',
+		purchasesLoginFailed: 'No purchases found for this payment account',
+		purchasesLoginCancel: 'Cancel',
+	}
+
+	function appBaseFromLocation() {
+		const path = global.location.pathname.replace(/\/s\/[^/]+\/?$/, '')
+		return global.location.origin + path
 	}
 
 	function serverDefaults() {
 		const pathParts = global.location.pathname.split('/')
-		const shareId = pathParts[pathParts.length - 1]
-		const origin = global.location.origin
+		const shareId = pathParts[pathParts.length - 1].split('?')[0]
+		const appBase = appBaseFromLocation()
 		return {
 			shareId,
-			shareInfoUrl: origin + '/share/' + shareId,
-			paymentCreateUrl: origin + '/payment/create',
-			paymentCheckUrl: origin + '/payment/check/' + shareId,
-			paymentVerifyUrl: origin + '/payment/verify',
-			downloadUrl: origin + '/api/download/' + shareId,
+			shareInfoUrl: appBase + '/s/' + encodeURIComponent(shareId) + '/info',
+			paymentCreateUrl: appBase + '/payment/create',
+			paymentCheckUrl: appBase + '/payment/check/' + encodeURIComponent(shareId),
+			paymentVerifyUrl: appBase + '/payment/verify',
+			downloadUrl: appBase + '/s/' + encodeURIComponent(shareId) + '/download',
+			recoverAccessUrl: appBase + '/api/buyer/recover-access/' + encodeURIComponent(shareId),
+			verifyPayerUrl: appBase + '/api/buyer/verify-payer',
 			l10n: DEFAULT_L10N,
+		}
+	}
+
+	/** Inject recover / cross-device blocks when PHP template on server is outdated. */
+	function ensureDownloadPageUi(l10n) {
+		const paySection = global.document.getElementById('pay-section')
+		if (!paySection) {
+			return
+		}
+
+		if (!global.document.getElementById('recover-access')) {
+			const recover = global.document.createElement('div')
+			recover.id = 'recover-access'
+			recover.className = 'recover-access'
+			recover.innerHTML = [
+				'<p class="recover-access__title"></p>',
+				'<p class="hint recover-access__hint"></p>',
+				'<div class="recover-access__row">',
+				'  <input type="text" id="recover-payer-input" class="recover-access__input" autocomplete="off" />',
+				'  <button class="btn btn-recover" id="recover-access-btn" type="button"></button>',
+				'</div>',
+				'<p class="error recover-access__error" id="recover-access-error"></p>',
+			].join('')
+			recover.querySelector('.recover-access__title').textContent = l10n.recoverAccessTitle
+			recover.querySelector('.recover-access__hint').textContent = l10n.recoverAccessHint
+			recover.querySelector('#recover-payer-input').placeholder = l10n.recoverAccessPlaceholder
+			recover.querySelector('#recover-access-btn').textContent = l10n.recoverAccessButton
+
+			const alreadyPaid = global.document.getElementById('already-paid')
+			if (alreadyPaid) {
+				paySection.insertBefore(recover, alreadyPaid)
+			} else {
+				paySection.appendChild(recover)
+			}
+		}
+
+		const alreadyPaid = global.document.getElementById('already-paid')
+		if (alreadyPaid && !global.document.getElementById('cross-device-link')) {
+			const wrap = global.document.createElement('div')
+			wrap.id = 'cross-device-link'
+			wrap.className = 'cross-device-link'
+			wrap.hidden = true
+			wrap.innerHTML = [
+				'<p class="cross-device-link__title"></p>',
+				'<p class="hint cross-device-link__hint"></p>',
+				'<div class="cross-device-link__row">',
+				'  <input type="text" id="cross-device-url" class="cross-device-link__input" readonly />',
+				'  <button class="btn btn-copy-link" id="copy-cross-device-btn" type="button"></button>',
+				'</div>',
+			].join('')
+			wrap.querySelector('.cross-device-link__title').textContent = l10n.crossDeviceLinkTitle
+			wrap.querySelector('.cross-device-link__hint').textContent = l10n.crossDeviceLinkHint
+			wrap.querySelector('#copy-cross-device-btn').textContent = l10n.copyCrossDeviceLink
+
+			const saveBtn = global.document.getElementById('save-cloud-btn')
+			if (saveBtn && saveBtn.parentNode === alreadyPaid) {
+				saveBtn.insertAdjacentElement('afterend', wrap)
+			} else {
+				alreadyPaid.appendChild(wrap)
+			}
+		}
+
+		if (!global.document.getElementById('buyer-purchases-corner')) {
+			const legacyFooter = global.document.getElementById('buyer-purchases-footer')
+			if (legacyFooter) {
+				legacyFooter.remove()
+			}
+			const corner = global.document.createElement('p')
+			corner.id = 'buyer-purchases-corner'
+			corner.className = 'buyer-purchases-corner'
+			corner.innerHTML = '<a href="#" class="buyer-purchases-corner__link" id="buyer-purchases-link"></a>'
+			corner.querySelector('#buyer-purchases-link').textContent = l10n.viewMyPurchases
+			const card = global.document.querySelector('.card')
+			if (card) {
+				card.appendChild(corner)
+			}
+		}
+
+		if (!global.document.getElementById('purchases-login-modal')) {
+			const modal = global.document.createElement('div')
+			modal.id = 'purchases-login-modal'
+			modal.className = 'sg-purchases-login-modal'
+			modal.hidden = true
+			modal.innerHTML = [
+				'<div class="sg-purchases-login-modal__backdrop" id="purchases-login-backdrop"></div>',
+				'<div class="sg-purchases-login-modal__card" role="dialog" aria-modal="true">',
+				'  <h2 class="sg-purchases-login-modal__title" id="purchases-login-title"></h2>',
+				'  <p class="hint sg-purchases-login-modal__hint" id="purchases-login-hint"></p>',
+				'  <input type="text" id="purchases-login-input" class="sg-purchases-login-modal__input" autocomplete="off" />',
+				'  <p class="error sg-purchases-login-modal__error" id="purchases-login-error"></p>',
+				'  <div class="sg-purchases-login-modal__actions">',
+				'    <button type="button" class="btn btn-recover" id="purchases-login-submit"></button>',
+				'    <button type="button" class="btn btn-copy-link" id="purchases-login-cancel"></button>',
+				'  </div>',
+				'</div>',
+			].join('')
+			modal.querySelector('#purchases-login-title').textContent = l10n.purchasesLoginTitle
+			modal.querySelector('#purchases-login-hint').textContent = l10n.purchasesLoginHint
+			modal.querySelector('#purchases-login-input').placeholder = l10n.recoverAccessPlaceholder
+			modal.querySelector('#purchases-login-submit').textContent = l10n.purchasesLoginButton
+			modal.querySelector('#purchases-login-cancel').textContent = l10n.purchasesLoginCancel
+			global.document.body.appendChild(modal)
 		}
 	}
 
@@ -63,14 +190,27 @@ import QRCode from 'qrcode'
 	}
 
 	function getBuyerId() {
-		let buyerId = global.localStorage && global.localStorage.getItem('sharegate_buyer_id')
-		if (!buyerId) {
-			buyerId = 'buyer_' + (global.crypto && global.crypto.randomUUID
-				? global.crypto.randomUUID().replace(/-/g, '')
-				: String(Date.now()) + Math.random().toString(16).slice(2))
-			if (global.localStorage) global.localStorage.setItem('sharegate_buyer_id', buyerId)
+		return getBuyerAccountId()
+	}
+
+	function linkAnonymousPurchasesForSaveToCloud(config) {
+		if (!config.linkPurchasesUrl || !config.ncLoggedIn || !config.ncUserId) {
+			return Promise.resolve()
 		}
-		return buyerId
+		const anonymousId = getBuyerAccountId()
+		if (!anonymousId.startsWith('buyer_')) {
+			return Promise.resolve()
+		}
+		const headers = { 'Content-Type': 'application/json', Accept: 'application/json' }
+		if (config.requestToken) {
+			headers.requesttoken = config.requestToken
+		}
+		return global.fetch(config.linkPurchasesUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers,
+			body: JSON.stringify({ anonymous_buyer_id: anonymousId }),
+		}).catch(() => { /* ignore */ })
 	}
 
 	async function renderQrCode(data, qrContainer, l10n) {
@@ -121,9 +261,79 @@ import QRCode from 'qrcode'
 
 	function init(userConfig) {
 		const config = Object.assign(serverDefaults(), userConfig || {})
+		if (config.verifyPayerUrl) {
+			config.verifyPayerUrl = alignAppUrlWithPage(config.verifyPayerUrl)
+		}
+		if (config.recoverAccessUrl) {
+			config.recoverAccessUrl = alignAppUrlWithPage(config.recoverAccessUrl)
+		}
+		if (config.purchasesPageUrl) {
+			config.purchasesPageUrl = alignAppUrlWithPage(config.purchasesPageUrl)
+		}
 		const l10n = Object.assign({}, DEFAULT_L10N, config.l10n || {})
+		if (!config.recoverAccessUrl && config.shareId) {
+			config.recoverAccessUrl = appBaseFromLocation()
+				+ '/api/buyer/recover-access/'
+				+ encodeURIComponent(config.shareId)
+		}
+		ensureDownloadPageUi(l10n)
+		capturePurchasesTokenFromUrl()
 		const shareId = config.shareId
 		let buyerId = getBuyerId()
+		let activeAccessToken = ''
+		const urlParams = new URLSearchParams(global.location.search)
+		const urlAccessToken = (urlParams.get('access_token') || '').trim()
+		/** 通过跨设备链接打开：仅展示当前文件下载，不展示已购/转存/再复制链接等 */
+		const openedViaCrossDeviceLink = urlAccessToken !== ''
+		let crossDeviceAccessGranted = false
+		if (urlAccessToken) {
+			activeAccessToken = urlAccessToken
+		}
+
+		function applyCrossDeviceVisitorUi() {
+			const crossDevice = el('cross-device-link')
+			if (crossDevice) {
+				crossDevice.hidden = true
+			}
+			const cornerPurchases = el('buyer-purchases-corner')
+			if (cornerPurchases) {
+				cornerPurchases.hidden = true
+			}
+			const recover = el('recover-access')
+			if (recover) {
+				recover.style.display = 'none'
+			}
+			const priceWrap = el('share-price')?.parentElement
+			if (priceWrap) {
+				priceWrap.style.display = 'none'
+			}
+			const payBtn = el('pay-btn')
+			if (payBtn) {
+				payBtn.style.display = 'none'
+			}
+			const qrcode = el('qrcode')
+			if (qrcode) {
+				qrcode.style.display = 'none'
+			}
+			;['save-cloud-btn', 'save-cloud-btn-success'].forEach((id) => {
+				const btn = el(id)
+				if (btn) {
+					btn.style.display = 'none'
+				}
+			})
+			;['save-cloud-login-hint-paid', 'save-cloud-login-hint-success'].forEach((id) => {
+				const hint = el(id)
+				if (hint) {
+					hint.style.display = 'none'
+				}
+			})
+		}
+
+		async function bootstrapBuyer() {
+			bindActions()
+			applyBuyerEntryUiState()
+			loadShare()
+		}
 		let pollTimer = null
 		let currentOrderId = null
 		let paymentFlow = 'qrcode'
@@ -180,6 +390,19 @@ import QRCode from 'qrcode'
 			return ''
 		}
 
+		function handleCancelledReturn() {
+			const params = new URLSearchParams(global.location.search)
+			const orderId = params.get('order_id')
+			if (!orderId || params.get('cancelled') !== '1') {
+				return
+			}
+			const url = paymentStatusUrl(orderId)
+			if (url) {
+				const notifyUrl = url + (url.includes('?') ? '&' : '?') + 'cancelled=1'
+				global.fetch(notifyUrl).catch(function () { /* ignore */ })
+			}
+		}
+
 		function handleReturnFromPayment() {
 			const orderId = returnOrderIdFromUrl()
 			if (!orderId) {
@@ -234,16 +457,202 @@ import QRCode from 'qrcode'
 			}
 		}
 
-		function showPaidSuccess() {
+		function applyPaidPayer(statusData) {
+			if (!statusData || typeof statusData !== 'object') {
+				return
+			}
+			const payerId = String(statusData.payer_user_id || '').trim()
+			if (statusData.access_token) {
+				activeAccessToken = statusData.access_token
+			}
+			// 已购 token 仅在确认真实支付账号后才写入（③）；buyer_xxx 不算登录账号
+			if (!isValidPayerAccountId(payerId)) {
+				return
+			}
+			rememberPayerAccount(payerId)
+			buyerId = payerId
+			applyPurchasesSessionFromResponse(statusData)
+		}
+
+		function showCrossDeviceLink(statusData) {
+			const wrap = el('cross-device-link')
+			const input = el('cross-device-url')
+			if (!wrap || !input) {
+				return
+			}
+			const link = (statusData && statusData.cross_device_url) || ''
+			if (!link) {
+				wrap.hidden = true
+				return
+			}
+			input.value = link
+			wrap.hidden = false
+		}
+
+		function showPaidSuccess(statusData) {
+			if (openedViaCrossDeviceLink) {
+				if (statusData?.access_token) {
+					activeAccessToken = String(statusData.access_token).trim()
+				}
+				crossDeviceAccessGranted = true
+			} else {
+				applyPaidPayer(statusData)
+			}
 			stopPolling()
 			const errorEl = el('pay-error')
 			if (errorEl) {
 				errorEl.textContent = ''
 			}
+			const recover = el('recover-access')
+			if (recover) {
+				recover.style.display = 'none'
+			}
 			el('qrcode').style.display = 'none'
 			el('already-paid').style.display = 'block'
 			el('pay-btn').style.display = 'none'
-			updateSaveCloudUi(true)
+			if (openedViaCrossDeviceLink) {
+				applyCrossDeviceVisitorUi()
+			} else {
+				showCrossDeviceLink(statusData)
+				updateSaveCloudUi(true)
+				applyBuyerEntryUiState()
+			}
+		}
+
+		function isPaidUiVisible() {
+			const paid = el('already-paid')
+			return !!(paid && paid.style.display === 'block')
+		}
+
+		/** 已付款→跨设备链接为主；已购入口固定在卡片右下角 */
+		function applyBuyerEntryUiState() {
+			if (openedViaCrossDeviceLink && crossDeviceAccessGranted) {
+				applyCrossDeviceVisitorUi()
+				return
+			}
+			const showPurchases = shouldShowPurchasesEntry()
+			const paid = isPaidUiVisible()
+			const recover = el('recover-access')
+			const cornerPurchases = el('buyer-purchases-corner')
+			if (recover) {
+				recover.style.display = (showPurchases || paid) ? 'none' : ''
+			}
+			if (cornerPurchases) {
+				cornerPurchases.hidden = false
+			}
+		}
+
+		async function ensurePurchasesToken() {
+			if (hasPurchasesToken() || !canBootstrapPurchasesToken()) {
+				return
+			}
+			await bootstrapPurchasesToken()
+		}
+
+		function hidePurchasesLoginModal() {
+			const modal = el('purchases-login-modal')
+			if (modal) {
+				modal.hidden = true
+			}
+		}
+
+		function showPurchasesLoginModal() {
+			const modal = el('purchases-login-modal')
+			const input = el('purchases-login-input')
+			const errorEl = el('purchases-login-error')
+			if (!modal) {
+				return
+			}
+			if (errorEl) {
+				errorEl.textContent = ''
+			}
+			if (input) {
+				input.value = ''
+			}
+			modal.hidden = false
+			if (input) {
+				input.focus()
+			}
+		}
+
+		function navigateToPurchasesPage(url) {
+			const target = url || buildPurchasesPageUrl(config.purchasesPageUrl || '')
+			if (target) {
+				global.location.assign(target)
+			}
+		}
+
+		global.openPurchasesPage = async function () {
+			const base = config.purchasesPageUrl || ''
+			if (!base) {
+				return
+			}
+			// 无痕迹且无 token：必须输入支付账号
+			if (requiresPaymentAccountLogin()) {
+				showPurchasesLoginModal()
+				return
+			}
+			// 有痕迹但无 token：用记住的支付账号静默签发
+			if (canBootstrapPurchasesToken()) {
+				await ensurePurchasesToken()
+			}
+			if (hasPurchasesToken()) {
+				navigateToPurchasesPage(buildPurchasesPageUrl(base))
+				return
+			}
+			showPurchasesLoginModal()
+		}
+
+		global.submitPurchasesLogin = async function () {
+			const input = el('purchases-login-input')
+			const errorEl = el('purchases-login-error')
+			const submitBtn = el('purchases-login-submit')
+			const payerRaw = input ? String(input.value || '').trim() : ''
+			if (!payerRaw || !isValidPayerAccountId(payerRaw)) {
+				if (errorEl) {
+					errorEl.textContent = l10n.purchasesLoginHint
+				}
+				return
+			}
+			if (!config.verifyPayerUrl) {
+				if (errorEl) {
+					errorEl.textContent = l10n.purchasesLoginFailed
+				}
+				return
+			}
+			if (submitBtn) {
+				submitBtn.disabled = true
+			}
+			if (errorEl) {
+				errorEl.textContent = ''
+			}
+			try {
+				const data = await verifyPayerAccount(payerRaw)
+				if (!data.success) {
+					if (errorEl) {
+						errorEl.textContent = data.error || l10n.purchasesLoginFailed
+					}
+					return
+				}
+				if (!data.found) {
+					if (errorEl) {
+						errorEl.textContent = l10n.purchasesLoginFailed
+					}
+					return
+				}
+				applyPurchasesSessionFromResponse(data)
+				applyBuyerEntryUiState()
+				hidePurchasesLoginModal()
+				navigateToPurchasesPage(data.purchases_url)
+			} catch (err) {
+				if (errorEl) {
+					errorEl.textContent = l10n.purchasesLoginFailed + ': ' + err.message
+				}
+			} finally {
+				if (submitBtn) {
+					submitBtn.disabled = false
+				}
+			}
 		}
 
 		function updateSaveCloudUi(hasAccess) {
@@ -286,6 +695,42 @@ import QRCode from 'qrcode'
 					btn.addEventListener('click', () => global.startSaveToCloud())
 				}
 			})
+			const recoverBtn = el('recover-access-btn')
+			if (recoverBtn) {
+				recoverBtn.addEventListener('click', () => global.recoverAccess())
+			}
+			const copyBtn = el('copy-cross-device-btn')
+			if (copyBtn) {
+				copyBtn.addEventListener('click', () => global.copyCrossDeviceLink())
+			}
+			const purchasesLink = el('buyer-purchases-link')
+			if (purchasesLink) {
+				purchasesLink.addEventListener('click', (e) => {
+					e.preventDefault()
+					global.openPurchasesPage()
+				})
+			}
+			const purchasesBackdrop = el('purchases-login-backdrop')
+			if (purchasesBackdrop) {
+				purchasesBackdrop.addEventListener('click', () => hidePurchasesLoginModal())
+			}
+			const purchasesCancel = el('purchases-login-cancel')
+			if (purchasesCancel) {
+				purchasesCancel.addEventListener('click', () => hidePurchasesLoginModal())
+			}
+			const purchasesSubmit = el('purchases-login-submit')
+			if (purchasesSubmit) {
+				purchasesSubmit.addEventListener('click', () => global.submitPurchasesLogin())
+			}
+			const purchasesInput = el('purchases-login-input')
+			if (purchasesInput) {
+				purchasesInput.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault()
+						global.submitPurchasesLogin()
+					}
+				})
+			}
 		}
 
 		function showLoading(show) {
@@ -340,7 +785,6 @@ import QRCode from 'qrcode'
 					throw new Error(l10n.requestFailed)
 				}
 				const shareData = await res.json()
-				showLoading(false)
 				el('pay-section').style.display = 'block'
 				el('share-title').textContent = shareData.title
 				el('share-desc').textContent = shareData.description || l10n.paidContentDefault
@@ -355,7 +799,13 @@ import QRCode from 'qrcode'
 				if (!returnOrderIdFromUrl()) {
 					applyPaymentUi()
 				}
+				handleCancelledReturn()
 				handleReturnFromPayment()
+				if (!openedViaCrossDeviceLink && hasBrowserPurchaseTraces()) {
+					await ensurePurchasesToken()
+				}
+				applyBuyerEntryUiState()
+				showLoading(false)
 			} catch (err) {
 				showLoading(false)
 				if (err.message === 'NOT_FOUND') {
@@ -368,16 +818,62 @@ import QRCode from 'qrcode'
 		}
 
 		async function checkPaidStatus() {
-			try {
-				const url = config.paymentCheckUrl + '?provider_user_id=' + encodeURIComponent(buyerId)
-				const res = await global.fetch(url)
-				const data = await res.json()
-				if (data.has_access) {
-					el('already-paid').style.display = 'block'
-					el('pay-btn').style.display = 'none'
-					updateSaveCloudUi(true)
-				}
-			} catch (e) { /* ignore */ }
+			if (activeAccessToken) {
+				try {
+					const url = config.paymentCheckUrl
+						+ '?access_token=' + encodeURIComponent(activeAccessToken)
+					const res = await global.fetch(url)
+					const data = await res.json()
+					if (data.has_access) {
+						let statusData = { access_token: activeAccessToken }
+						try {
+							const verifyRes = await global.fetch(config.paymentVerifyUrl, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									share_id: shareId,
+									access_token: activeAccessToken,
+								}),
+							})
+							const verifyData = await verifyRes.json()
+							if (verifyData.success) {
+								statusData = verifyData
+							}
+						} catch (e) { /* ignore */ }
+						showPaidSuccess(statusData)
+						return
+					}
+				} catch (e) { /* ignore */ }
+			}
+
+			const payerIds = payerIdsForAccessCheck()
+			for (const payerId of payerIds) {
+				try {
+					const url = config.paymentCheckUrl + '?provider_user_id=' + encodeURIComponent(payerId)
+					const res = await global.fetch(url)
+					const data = await res.json()
+					if (data.has_access) {
+						buyerId = payerId
+						let statusData = { payer_user_id: payerId }
+						try {
+							const verifyRes = await global.fetch(config.paymentVerifyUrl, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									share_id: shareId,
+									provider_user_id: payerId,
+								}),
+							})
+							const verifyData = await verifyRes.json()
+							if (verifyData.success) {
+								statusData = verifyData
+							}
+						} catch (e) { /* ignore */ }
+						showPaidSuccess(statusData)
+						return
+					}
+				} catch (e) { /* ignore */ }
+			}
 		}
 
 		global.startPay = async function () {
@@ -408,6 +904,7 @@ import QRCode from 'qrcode'
 						el('already-paid').style.display = 'block'
 						btn.style.display = 'none'
 						updateSaveCloudUi(true)
+						applyBuyerEntryUiState()
 						return
 					}
 					if (data.payment_flow === 'redirect' && data.payment_url) {
@@ -456,7 +953,7 @@ import QRCode from 'qrcode'
 					statusData = await statusRes.json()
 				} catch (e) { /* ignore */ }
 				if (statusData.success && statusData.status === 'paid') {
-					showPaidSuccess()
+					showPaidSuccess(statusData)
 					return true
 				}
 				if (statusData.error && errorEl) {
@@ -478,13 +975,17 @@ import QRCode from 'qrcode'
 				errorEl.textContent = l10n.requestFailed
 			}
 
-			const checkRes = await global.fetch(
-				config.paymentCheckUrl + '?provider_user_id=' + encodeURIComponent(activeBuyerId),
-			)
-			const checkData = await checkRes.json()
-			if (checkData.has_access) {
-				showPaidSuccess()
-				return true
+			const payerIds = payerIdsForAccessCheck()
+			for (const payerId of payerIds) {
+				const checkRes = await global.fetch(
+					config.paymentCheckUrl + '?provider_user_id=' + encodeURIComponent(payerId),
+				)
+				const checkData = await checkRes.json()
+				if (checkData.has_access) {
+					buyerId = payerId
+					showPaidSuccess()
+					return true
+				}
 			}
 
 			if (attempts >= 60) {
@@ -523,6 +1024,87 @@ import QRCode from 'qrcode'
 			global.location.assign(url)
 		}
 
+		global.recoverAccess = async function () {
+			const input = el('recover-payer-input')
+			const errorEl = el('recover-access-error')
+			const btn = el('recover-access-btn')
+			const payerRaw = input ? String(input.value || '').trim() : ''
+			if (!payerRaw) {
+				if (errorEl) {
+					errorEl.textContent = l10n.recoverAccessHint
+				}
+				return
+			}
+			if (!config.recoverAccessUrl) {
+				if (errorEl) {
+					errorEl.textContent = l10n.recoverAccessFailed
+				}
+				return
+			}
+			if (btn) {
+				btn.disabled = true
+			}
+			if (errorEl) {
+				errorEl.textContent = ''
+			}
+			try {
+				const res = await global.fetch(config.recoverAccessUrl, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+					body: JSON.stringify({ payer_id: payerRaw }),
+				})
+				const data = await res.json()
+				if (data.success) {
+					showPaidSuccess(data)
+					if (data.cross_device_url && global.history && global.history.replaceState) {
+						try {
+							const next = new URL(global.location.href)
+							if (data.access_token) {
+								next.searchParams.set('access_token', data.access_token)
+							}
+							global.history.replaceState({}, '', next.toString())
+						} catch (e) { /* ignore */ }
+					}
+					return
+				}
+				if (errorEl) {
+					errorEl.textContent = data.error || l10n.recoverAccessFailed
+				}
+			} catch (err) {
+				if (errorEl) {
+					errorEl.textContent = l10n.recoverAccessFailed + ': ' + err.message
+				}
+			} finally {
+				if (btn) {
+					btn.disabled = false
+				}
+			}
+		}
+
+		global.copyCrossDeviceLink = async function () {
+			const input = el('cross-device-url')
+			const btn = el('copy-cross-device-btn')
+			const link = input ? String(input.value || '').trim() : ''
+			if (!link) {
+				return
+			}
+			try {
+				if (global.navigator && global.navigator.clipboard && global.navigator.clipboard.writeText) {
+					await global.navigator.clipboard.writeText(link)
+				} else if (input) {
+					input.select()
+					global.document.execCommand('copy')
+				}
+				if (btn) {
+					const label = btn.textContent
+					btn.textContent = l10n.linkCopied
+					setTimeout(() => { btn.textContent = label }, 2000)
+				}
+			} catch (e) {
+				global.alert(link)
+			}
+		}
+
 		global.startSaveToCloud = async function () {
 			if (!config.saveToCloudUrl) {
 				global.alert(l10n.saveToCloudFailed)
@@ -541,17 +1123,20 @@ import QRCode from 'qrcode'
 			})
 
 			try {
+				await linkAnonymousPurchasesForSaveToCloud(config)
 				const headers = { 'Content-Type': 'application/json' }
 				if (config.requestToken) {
 					headers.requesttoken = config.requestToken
+				}
+				const body = { provider_user_id: buyerId }
+				if (activeAccessToken) {
+					body.access_token = activeAccessToken
 				}
 				const res = await global.fetch(config.saveToCloudUrl, {
 					method: 'POST',
 					credentials: 'same-origin',
 					headers,
-					body: JSON.stringify({
-						provider_user_id: buyerId,
-					}),
+					body: JSON.stringify(body),
 				})
 				let data = {}
 				try {
@@ -588,13 +1173,17 @@ import QRCode from 'qrcode'
 			})
 
 			try {
+				const body = {
+					share_id: shareId,
+					provider_user_id: buyerId,
+				}
+				if (activeAccessToken) {
+					body.access_token = activeAccessToken
+				}
 				const res = await global.fetch(config.paymentVerifyUrl, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						share_id: shareId,
-						provider_user_id: buyerId,
-					}),
+					body: JSON.stringify(body),
 				})
 				const data = await res.json()
 				if (!data.success || data.code !== 'ACCESS_GRANTED') {
@@ -602,7 +1191,14 @@ import QRCode from 'qrcode'
 					return
 				}
 
-				const downloadUrl = data.download_url || (config.downloadUrl + '?uid=' + encodeURIComponent(buyerId))
+				if (data.access_token) {
+					activeAccessToken = data.access_token
+				}
+
+				const downloadUrl = data.download_url
+					|| (activeAccessToken
+						? (config.downloadUrl + '?access_token=' + encodeURIComponent(activeAccessToken))
+						: (config.downloadUrl + '?uid=' + encodeURIComponent(buyerId)))
 				if (!downloadUrl) {
 					global.alert(l10n.downloadFailed)
 					return
@@ -620,8 +1216,7 @@ import QRCode from 'qrcode'
 			}
 		}
 
-		bindActions()
-		loadShare()
+		bootstrapBuyer()
 	}
 
 	global.ShareGateDownload = { init, serverDefaults }

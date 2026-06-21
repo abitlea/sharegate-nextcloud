@@ -7,6 +7,7 @@ namespace OCA\ShareGate\Controller;
 use OCA\ShareGate\AppInfo\Application;
 use OCA\ShareGate\Util\CspNonce;
 use OCA\ShareGate\Service\DownloadService;
+use OCA\ShareGate\Service\PaymentConfigService;
 use OCA\ShareGate\Service\SaveToCloudService;
 use OCA\ShareGate\Service\ShareService;
 use OCA\ShareGate\Service\ShareStatsService;
@@ -27,6 +28,7 @@ use OCP\IURLGenerator;
 use OCP\IPreview;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use OCP\IL10N;
 use OCP\L10N\IFactory;
 use OCP\Util;
 use OCP\AppFramework\Http;
@@ -36,6 +38,7 @@ class ShareController extends Controller {
 		string $appName,
 		IRequest $request,
 		private ShareService $shareService,
+		private PaymentConfigService $paymentConfig,
 		private DownloadService $downloadService,
 		private IMimeTypeDetector $mimeTypeDetector,
 		private ShareStatsService $shareStatsService,
@@ -59,6 +62,10 @@ class ShareController extends Controller {
 		$path = (string)$this->request->getParam('path', '');
 		$name = (string)$this->request->getParam('name', '');
 
+		$l = $this->l10nFactory->get(Application::APP_ID);
+		$currency = $this->paymentConfig->getDisplayCurrency();
+		$unit = $currency === 'CNY' ? $l->t('currency_unit_CNY') : $currency;
+
 		$embedConfig = [
 			'platform' => 'nextcloud',
 			'createUrl' => $this->urlGenerator->linkToRoute('sharegate.share.createShare'),
@@ -80,6 +87,8 @@ class ShareController extends Controller {
 		];
 
 		return new TemplateResponse(Application::APP_ID, 'embed/create', [
+			'price_label' => $l->t('Price (%s)', [$unit]),
+			'min_price_hint' => $l->t('Minimum 0.01 %s', [$unit]),
 			'embed_config' => json_encode(
 				$embedConfig,
 				JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS,
@@ -121,10 +130,15 @@ class ShareController extends Controller {
 	public function getShareSettings(string $shareId): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
 		if ($userId === null) {
-			return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+			return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 		}
 
 		$result = $this->shareService->getShareSettings($shareId, $userId);
+		if (($result['success'] ?? false) && isset($result['share']) && is_array($result['share'])) {
+			$result['display_currency'] = $this->paymentConfig->getDisplayCurrency();
+			$price = (int)($result['share']['price'] ?? 0);
+			$result['share']['price_display'] = $this->paymentConfig->formatPrice($price);
+		}
 		$status = ($result['success'] ?? false) ? 200 : 404;
 		return new DataResponse($result, $status);
 	}
@@ -133,7 +147,7 @@ class ShareController extends Controller {
 	public function updateShare(string $shareId): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
 		if ($userId === null) {
-			return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+			return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 		}
 
 		$body = $this->request->getParams();
@@ -168,10 +182,13 @@ class ShareController extends Controller {
 		$ncUserId = $this->shareService->getCurrentUserId();
 		$l = $this->l10nFactory->get(Application::APP_ID);
 		$shareInfo = $this->downloadService->getPublicShareInfo($shareId) ?? [];
-		$loginUrl = $this->loginPageUrl();
+		$purchasesPageUrl = $this->urlGenerator->linkToRoute('sharegate.buyer.index');
 
 		$downloadConfig = [
 			'shareId' => $shareId,
+			'ncUserId' => $ncUserId ?? '',
+			'linkPurchasesUrl' => $this->urlGenerator->linkToRoute('sharegate.buyer.linkPurchases'),
+			'purchasesPageUrl' => $purchasesPageUrl,
 			'mimeIconUrl' => $shareInfo['mime_icon_url'] ?? '',
 			'previewIconUrl' => $shareInfo['icon_url'] ?? '',
 			'shareInfoUrl' => $this->urlGenerator->linkToRoute(
@@ -196,8 +213,13 @@ class ShareController extends Controller {
 				'sharegate.share.saveToCloud',
 				['shareId' => $shareId],
 			),
+			'recoverAccessUrl' => $this->urlGenerator->linkToRoute(
+				'sharegate.buyer.recoverAccess',
+				['shareId' => $shareId],
+			),
+			'verifyPayerUrl' => $this->urlGenerator->linkToRoute('sharegate.buyer.verifyPayer'),
 			'ncLoggedIn' => $ncUserId !== null,
-			'loginUrl' => $loginUrl,
+			'loginUrl' => $this->loginPageUrl(),
 			'requestToken' => (string)$this->session->get('requesttoken'),
 			'l10n' => [
 				'unknown' => $l->t('Unknown'),
@@ -226,6 +248,21 @@ class ShareController extends Controller {
 				'savedToCloud' => $l->t('File saved to your Nextcloud'),
 				'saveToCloudFailed' => $l->t('Save to cloud failed'),
 				'saveToCloudLoginHint' => $l->t('Log in to this Nextcloud account to save the file to your cloud drive.'),
+				'viewMyPurchases' => $l->t('View my purchases'),
+				'recoverAccessTitle' => $l->t('Already paid? Recover download access'),
+				'recoverAccessHint' => $l->t('Enter the full payment account you used at checkout'),
+				'recoverAccessPlaceholder' => $l->t('Alipay / PayPal / Stripe account used to pay'),
+				'recoverAccessButton' => $l->t('Recover access'),
+				'recoverAccessFailed' => $l->t('Recovery failed'),
+				'crossDeviceLinkTitle' => $l->t('Open on another device'),
+				'crossDeviceLinkHint' => $l->t('Copy this link to download on another browser or phone'),
+				'copyCrossDeviceLink' => $l->t('Copy cross-device link'),
+				'linkCopied' => $l->t('Link copied'),
+				'purchasesLoginTitle' => $l->t('Sign in to view purchases'),
+				'purchasesLoginHint' => $l->t('Enter the full payment account you used at checkout'),
+				'purchasesLoginButton' => $l->t('View my purchases'),
+				'purchasesLoginFailed' => $l->t('No purchases found for this payment account'),
+				'purchasesLoginCancel' => $l->t('Cancel'),
 			],
 		];
 
@@ -233,20 +270,29 @@ class ShareController extends Controller {
 			'share_id' => $shareId,
 			'file_icon_url' => $shareInfo['mime_icon_url'] ?? '',
 			'file_name' => $shareInfo['file_name'] ?? '',
+			'purchases_page_url' => $purchasesPageUrl,
 			'download_config' => json_encode(
 				$downloadConfig,
 				JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS,
 			),
 			'csp_nonce' => CspNonce::get(),
-			'login_url' => $loginUrl,
+			'login_url' => $this->loginPageUrl(),
 		], TemplateResponse::RENDER_AS_BASE);
 	}
 
-	private function loginPageUrl(): string {
+	private function loginPageUrl(?string $redirectUrl = null): string {
 		try {
-			return $this->urlGenerator->linkToRoute('core.login.showLoginForm');
+			$params = [];
+			if ($redirectUrl !== null && $redirectUrl !== '') {
+				$params['redirect_url'] = $redirectUrl;
+			}
+			return $this->urlGenerator->linkToRoute('core.login.showLoginForm', $params);
 		} catch (\Throwable) {
-			return rtrim($this->urlGenerator->getAbsoluteURL(''), '/') . '/login';
+			$base = rtrim($this->urlGenerator->getAbsoluteURL(''), '/') . '/login';
+			if ($redirectUrl !== null && $redirectUrl !== '') {
+				return $base . '?redirect_url=' . rawurlencode($redirectUrl);
+			}
+			return $base;
 		}
 	}
 
@@ -263,14 +309,14 @@ class ShareController extends Controller {
 	#[NoCSRFRequired]
 	public function fileIcon(string $shareId) {
 		if ($this->downloadService->getPublicShareInfo($shareId) === null) {
-			return new DataResponse(['error' => '分享链接不存在或已过期'], 404);
+			return new DataResponse(['error' => $this->l10n()->t('Share not found or expired')], 404);
 		}
 
 		try {
 			$share = $this->shareService->getShareEntity($shareId);
 			$file = $this->downloadService->tryResolveShareFile($share);
 		} catch (\Throwable) {
-			return new DataResponse(['error' => '分享链接不存在或已过期'], 404);
+			return new DataResponse(['error' => $this->l10n()->t('Share not found or expired')], 404);
 		}
 
 		if ($file === null) {
@@ -396,7 +442,7 @@ class ShareController extends Controller {
 	public function getShareInfo(string $shareId): DataResponse {
 		$info = $this->downloadService->getPublicShareInfo($shareId);
 		if ($info === null) {
-			return new DataResponse(['error' => '分享链接不存在或已过期'], 404);
+			return new DataResponse(['error' => $this->l10n()->t('Share not found or expired')], 404);
 		}
 		return new DataResponse($info);
 	}
@@ -415,7 +461,12 @@ class ShareController extends Controller {
 		}
 
 		$providerUserId = (string)($body['provider_user_id'] ?? $this->request->getParam('uid', ''));
-		$result = $this->downloadService->verifyDownload($shareId, $providerUserId);
+		$accessToken = trim((string)($body['access_token'] ?? $this->request->getParam('access_token', '')));
+		$result = $this->downloadService->verifyDownload(
+			$shareId,
+			$providerUserId !== '' ? $providerUserId : null,
+			$accessToken !== '' ? $accessToken : null,
+		);
 		return new DataResponse($result, ($result['success'] ?? false) ? 200 : 403);
 	}
 
@@ -424,7 +475,12 @@ class ShareController extends Controller {
 	#[NoCSRFRequired]
 	public function downloadFile(string $shareId) {
 		$providerUserId = (string)$this->request->getParam('uid', '');
-		$verify = $this->downloadService->verifyDownload($shareId, $providerUserId);
+		$accessToken = trim((string)$this->request->getParam('access_token', ''));
+		$verify = $this->downloadService->verifyDownload(
+			$shareId,
+			$providerUserId !== '' ? $providerUserId : null,
+			$accessToken !== '' ? $accessToken : null,
+		);
 		if (!($verify['success'] ?? false)) {
 			return new DataResponse($verify, 403);
 		}
@@ -437,15 +493,15 @@ class ShareController extends Controller {
 				$file = $this->downloadService->resolveShareFile($share);
 				$stream = $file->fopen('r');
 				if ($stream === false) {
-					throw new \RuntimeException('无法读取文件');
+					throw new \RuntimeException($this->l10n()->t('Could not read file'));
 				}
 
 				return [$file, $stream];
 			});
 		} catch (NotFoundException $e) {
-			return new DataResponse(['error' => '文件不存在: ' . $e->getMessage()], 404);
+			return new DataResponse(['error' => $this->l10n()->t('File not found: %s', [$e->getMessage()])], 404);
 		} catch (\Throwable $e) {
-			return new DataResponse(['error' => '无法读取文件: ' . $e->getMessage()], 500);
+			return new DataResponse(['error' => $this->l10n()->t('Could not read file: %s', [$e->getMessage()])], 500);
 		}
 
 		$response = new \OCP\AppFramework\Http\StreamResponse($stream, Http::STATUS_OK, [
@@ -480,11 +536,13 @@ class ShareController extends Controller {
 			}
 		}
 		$providerUserId = (string)($body['provider_user_id'] ?? '');
+		$accessToken = trim((string)($body['access_token'] ?? ''));
 		try {
 			$result = $this->saveToCloudService()->saveToCloud(
 				$shareId,
-				$providerUserId,
+				$providerUserId !== '' ? $providerUserId : null,
 				$userId,
+				$accessToken !== '' ? $accessToken : null,
 			);
 		} catch (\Throwable $e) {
 			$l = $this->l10nFactory->get(Application::APP_ID);
@@ -503,9 +561,13 @@ class ShareController extends Controller {
 	public function disable(string $shareId): DataResponse {
 		$userId = $this->shareService->getCurrentUserId();
 		if ($userId === null) {
-			return new DataResponse(['success' => false, 'error' => '未登录'], 401);
+			return new DataResponse(['success' => false, 'error' => $this->l10n()->t('Please log in to Nextcloud')], 401);
 		}
 		$result = $this->shareService->disableShare($shareId, $userId);
 		return new DataResponse($result, ($result['success'] ?? false) ? 200 : 400);
+	}
+
+	private function l10n(): IL10N {
+		return $this->l10nFactory->get(Application::APP_ID);
 	}
 }

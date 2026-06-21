@@ -45,7 +45,7 @@ class RegisterNavigationListener implements IEventListener {
 				'order' => 10,
 				'href' => $baseHref . '#public',
 				'icon' => $icon,
-				'name' => $l10n->t('Public links'),
+				'name' => $l10n->t('Your shares'),
 			],
 			[
 				'id' => Application::APP_ID . '-paid',
@@ -60,6 +60,13 @@ class RegisterNavigationListener implements IEventListener {
 				'href' => $baseHref . '#account',
 				'icon' => $icon,
 				'name' => $l10n->t('Account binding'),
+			],
+			[
+				'id' => Application::APP_ID . '-ledger',
+				'order' => 35,
+				'href' => $baseHref . '#ledger',
+				'icon' => $icon,
+				'name' => $l10n->t('Payment ledger'),
 			],
 			[
 				'id' => Application::APP_ID . '-stats',

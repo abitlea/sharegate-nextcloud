@@ -110,6 +110,7 @@ class AlipayF2fProvider {
 				'order_id' => $orderId,
 				'provider_order_id' => (string)($params['trade_no'] ?? ''),
 				'payer_user_id' => (string)($params['buyer_logon_id'] ?? $params['buyer_id'] ?? 'alipay_user'),
+				'alipay_uid' => trim((string)($params['buyer_id'] ?? $params['buyer_user_id'] ?? '')),
 			];
 		} catch (\Throwable $e) {
 			return ['success' => false, 'error' => $this->l->t('Callback verification error: %s', [$e->getMessage()])];
@@ -144,6 +145,7 @@ class AlipayF2fProvider {
 				'status' => $map[$tradeStatus] ?? 'pending',
 				'provider_order_id' => (string)($result->tradeNo ?? ''),
 				'payer_user_id' => (string)($result->buyerLogonId ?? 'alipay_user'),
+				'alipay_uid' => trim((string)($result->buyerUserId ?? $result->buyerId ?? '')),
 			];
 		} catch (\Throwable $e) {
 			return ['success' => false, 'error' => $e->getMessage()];

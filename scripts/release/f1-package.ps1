@@ -38,6 +38,8 @@ $excludePatterns = @(
 )
 $requiredPaths = @(
     "appinfo\info.xml",
+    "CHANGELOG.md",
+    "CHANGELOG.zh-hans.md",
     "lib",
     "vendor\autoload.php",
     "js\dashboard.js",

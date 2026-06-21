@@ -64,6 +64,13 @@ class PaymentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function check(string $shareId): DataResponse {
+		$accessToken = trim((string)$this->request->getParam('access_token', ''));
+		if ($accessToken !== '') {
+			return new DataResponse([
+				'has_access' => $this->downloadService->hasDownloadAccess($shareId, null, $accessToken),
+			]);
+		}
+
 		$providerUserId = (string)$this->request->getParam('provider_user_id', '');
 		if ($providerUserId === '') {
 			return new DataResponse(['error' => $this->l->t('Missing provider_user_id')], 400);
@@ -80,7 +87,12 @@ class PaymentController extends Controller {
 		$body = $this->parseJsonBody();
 		$shareId = (string)($body['share_id'] ?? '');
 		$providerUserId = (string)($body['provider_user_id'] ?? '');
-		$result = $this->downloadService->verifyDownload($shareId, $providerUserId);
+		$accessToken = trim((string)($body['access_token'] ?? ''));
+		$result = $this->downloadService->verifyDownload(
+			$shareId,
+			$providerUserId !== '' ? $providerUserId : null,
+			$accessToken !== '' ? $accessToken : null,
+		);
 		return new DataResponse($result, ($result['success'] ?? false) ? 200 : 403);
 	}
 
@@ -106,9 +118,14 @@ class PaymentController extends Controller {
 	#[NoCSRFRequired]
 	public function status(string $orderId): DataResponse {
 		$paypalToken = trim((string)$this->request->getParam('paypal_token', ''));
+		$cancelledParam = $this->request->getParam('cancelled', '');
+		$buyerCancelled = $cancelledParam === '1'
+			|| $cancelledParam === 'true'
+			|| $cancelledParam === true;
 		$result = $this->paymentService->queryOrderStatus(
 			$orderId,
 			$paypalToken !== '' ? $paypalToken : null,
+			$buyerCancelled,
 		);
 		return new DataResponse($result, 200);
 	}

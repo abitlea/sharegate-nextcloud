@@ -31,9 +31,9 @@
 		</div>
 		<div class="form-row">
 			<div class="form-group">
-				<label><?php p($l->t('Price (CNY)')); ?> <span class="required">*</span></label>
+				<label><?php p($_['price_label']); ?> <span class="required">*</span></label>
 				<input type="number" id="price-yuan" value="1.00" min="0.01" step="0.01">
-				<div class="field-hint"><?php p($l->t('Minimum 0.01 CNY')); ?></div>
+				<div class="field-hint"><?php p($_['min_price_hint']); ?></div>
 			</div>
 			<div class="form-group">
 				<label><?php p($l->t('Access days after payment')); ?> <span class="required">*</span></label>

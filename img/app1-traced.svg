@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="20" height="20"
+     viewBox="0 0 24 24"
+     fill="#fff"
+     role="img"
+     aria-label="ShareGate">
+  <!-- 连接线先画，圆盖在上面，避免断口 -->
+  <path fill="none" stroke="#fff" stroke-width="1"
+        stroke-linecap="round" stroke-linejoin="round"
+        d="M7.8 14.2L10.8 10.2 M16.2 14.2L13.2 10.2 M8 16h8"/>
+  <circle cx="12" cy="8" r="3"/>
+  <circle cx="6" cy="16" r="3"/>
+  <circle cx="18" cy="16" r="3"/>
+</svg>

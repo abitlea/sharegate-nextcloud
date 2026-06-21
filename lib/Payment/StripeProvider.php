@@ -107,7 +107,17 @@ class StripeProvider {
 		}
 
 		$body = $response['data'];
+		$sessionStatus = (string)($body['status'] ?? '');
 		$paymentStatus = (string)($body['payment_status'] ?? '');
+		if ($sessionStatus === 'expired') {
+			return [
+				'success' => true,
+				'status' => 'expired',
+				'status_message' => $this->l->t('Checkout session expired'),
+				'order_id' => (string)($body['client_reference_id'] ?? $body['metadata']['order_id'] ?? ''),
+				'provider_order_id' => $sessionId,
+			];
+		}
 		$status = $paymentStatus === 'paid' ? 'paid' : 'pending';
 		$orderId = (string)($body['client_reference_id'] ?? $body['metadata']['order_id'] ?? '');
 
@@ -140,6 +150,24 @@ class StripeProvider {
 		}
 
 		$type = (string)($event['type'] ?? '');
+
+		if ($type === 'charge.refunded') {
+			/** @var array<string, mixed> $charge */
+			$charge = is_array($event['data']['object'] ?? null) ? $event['data']['object'] : [];
+			/** @var array<string, mixed> $metadata */
+			$metadata = is_array($charge['metadata'] ?? null) ? $charge['metadata'] : [];
+			$orderId = (string)($metadata['order_id'] ?? '');
+			if ($orderId === '') {
+				return ['success' => false, 'error' => 'ignored'];
+			}
+			return [
+				'success' => true,
+				'event_type' => 'charge.refunded',
+				'order_id' => $orderId,
+				'status_message' => $this->l->t('Payment refunded'),
+			];
+		}
+
 		if ($type !== 'checkout.session.completed') {
 			return ['success' => false, 'error' => 'ignored'];
 		}

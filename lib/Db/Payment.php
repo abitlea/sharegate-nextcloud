@@ -27,6 +27,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(int $createdAt)
  * @method int|null getPaidAt()
  * @method void setPaidAt(?int $paidAt)
+ * @method string|null getStatusMessage()
+ * @method void setStatusMessage(?string $statusMessage)
+ * @method int|null getRefundedAt()
+ * @method void setRefundedAt(?int $refundedAt)
  */
 class Payment extends Entity {
 	protected string $shareId = '';
@@ -39,6 +43,8 @@ class Payment extends Entity {
 	protected ?string $qrCode = null;
 	protected int $createdAt = 0;
 	protected ?int $paidAt = null;
+	protected ?string $statusMessage = null;
+	protected ?int $refundedAt = null;
 
 	public function __construct() {
 		$this->addType('shareId', 'string');
@@ -51,5 +57,7 @@ class Payment extends Entity {
 		$this->addType('qrCode', 'string');
 		$this->addType('createdAt', 'integer');
 		$this->addType('paidAt', 'integer');
+		$this->addType('statusMessage', 'string');
+		$this->addType('refundedAt', 'integer');
 	}
 }

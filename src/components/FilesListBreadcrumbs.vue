@@ -11,10 +11,10 @@
 			:name="title"
 			:title="reloadTitle"
 			dir="auto"
-			force-icon-text
+			:force-icon-text="showViewIcon"
 			force-menu
 			:open.sync="isMenuOpen">
-			<template #icon>
+			<template v-if="showViewIcon" #icon>
 				<component :is="viewIcon" :size="20" />
 			</template>
 			<template #menu-icon>
@@ -62,6 +62,10 @@ export default {
 		viewIcon: {
 			type: [Object, Function],
 			default: () => LinkVariant,
+		},
+		showViewIcon: {
+			type: Boolean,
+			default: true,
 		},
 	},
 	emits: ['reload'],

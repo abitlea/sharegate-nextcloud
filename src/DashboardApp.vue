@@ -36,13 +36,20 @@
 				ref="listPanel"
 				:filter="route.filter"
 				:search-query="searchQuery"
+				:display-currency="displayCurrency"
 				@open-settings="openSettings"
 				@open-create="openCreateShare"
 				@disable-share="confirmDisableShare" />
 			<StatsPanel
 				v-else-if="route.view === 'stats'"
 				ref="statsPanel"
-				:search-query="searchQuery" />
+				:search-query="searchQuery"
+				:display-currency="displayCurrency" />
+			<PaymentLedgerPanel
+				v-else-if="route.view === 'ledger'"
+				ref="ledgerPanel"
+				:search-query="searchQuery"
+				:display-currency="displayCurrency" />
 			<AccountPanel
 				v-else-if="route.view === 'account'"
 				:search-query="searchQuery" />
@@ -52,6 +59,7 @@
 			v-if="route.view === 'list'"
 			:open.sync="createOpen"
 			:file-preset="createFile"
+			:display-currency="displayCurrency"
 			@created="onShareCreated"
 			@open-settings="openSettings" />
 
@@ -59,6 +67,7 @@
 			v-if="route.view === 'list'"
 			:open.sync="settingsOpen"
 			:share-id="settingsShareId"
+			:display-currency="displayCurrency"
 			@saved="onSettingsSaved" />
 	</NcContent>
 </template>
@@ -76,13 +85,16 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import AccountCash from 'vue-material-design-icons/AccountCash.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import ChartDonut from 'vue-material-design-icons/ChartDonut.vue'
+import ReceiptText from 'vue-material-design-icons/ReceiptText.vue'
 import AccountPanel from './components/AccountPanel.vue'
 import CreateShareSidebar from './components/CreateShareSidebar.vue'
 import ShareSettingsSidebar from './components/ShareSettingsSidebar.vue'
 import SharesListPanel from './components/SharesListPanel.vue'
 import StatsPanel from './components/StatsPanel.vue'
+import PaymentLedgerPanel from './components/PaymentLedgerPanel.vue'
 import { disableShare, loadSummary } from './utils/api.js'
 import { getDashboardConfig } from './utils/config.js'
+import { applyDisplayCurrencyFromPayload, getDisplayCurrency, setDisplayCurrency } from './utils/currency.js'
 import { formatNavCounter } from './utils/format.js'
 import { consumeEditParam, parseHash, setHash } from './utils/hashRouter.js'
 
@@ -99,6 +111,7 @@ export default {
 		NcCounterBubble,
 		SharesListPanel,
 		StatsPanel,
+		PaymentLedgerPanel,
 		AccountPanel,
 		CreateShareSidebar,
 		ShareSettingsSidebar,
@@ -106,13 +119,18 @@ export default {
 		AccountCash,
 		Cog,
 		ChartDonut,
+		ReceiptText,
 	},
 	data() {
 		const route = parseHash()
+		const config = getDashboardConfig()
+		const initialCurrency = config.display_currency || config.displayCurrency || 'CNY'
+		setDisplayCurrency(initialCurrency)
 		return {
 			route,
 			searchQuery: '',
 			counts: {},
+			displayCurrency: getDisplayCurrency(),
 			navigationOpen: true,
 			settingsOpen: false,
 			settingsShareId: '',
@@ -128,11 +146,13 @@ export default {
 			return this.route.view === 'list'
 				|| this.route.view === 'account'
 				|| this.route.view === 'stats'
+				|| this.route.view === 'ledger'
 		},
 		pageTitle() {
 			const titles = {
 				public: this.t('Your shares'),
 				paid: this.t('Paid shares'),
+				ledger: this.t('Payment ledger'),
 				account: this.t('Account binding'),
 				stats: this.t('Statistics'),
 			}
@@ -153,6 +173,9 @@ export default {
 			}
 			if (this.route.view === 'stats') {
 				return this.t('Search statistics')
+			}
+			if (this.route.view === 'ledger') {
+				return this.t('Search payment ledger')
 			}
 			return this.route.filter === 'active'
 				? this.t('Search paid shares')
@@ -177,6 +200,12 @@ export default {
 					name: this.t('Account binding'),
 					icon: Cog,
 					countKey: null,
+				},
+				{
+					hash: 'ledger',
+					name: this.t('Payment ledger'),
+					icon: ReceiptText,
+					countKey: 'ledger',
 				},
 				{
 					hash: 'stats',
@@ -260,6 +289,10 @@ export default {
 				const data = await loadSummary()
 				if (data?.success && data.filters) {
 					this.counts = data.filters
+				}
+				const currency = applyDisplayCurrencyFromPayload(data)
+				if (currency) {
+					this.displayCurrency = currency
 				}
 			} catch {
 				// ignore

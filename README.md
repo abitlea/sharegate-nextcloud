@@ -2,9 +2,27 @@
 
 > **Languages:** English (this file) · [简体中文](README.zh-CN.md)
 
-Nextcloud app: **install and enable — no separate Node server required.**
+**Sell files from your Nextcloud — Stripe & PayPal built in. No extra server.**
 
-**Current version:** 1.3.4 — seller dashboard (Your shares · Paid shares · Account binding · Revenue), buyer paywall, **Stripe / PayPal / Alipay Face-to-Face**, save-to-cloud, bilingual UI (`en` / `zh_CN`).
+ShareGate (**Paid sharing**) turns files in your drive into **paid download links**. Install the app, enable it, and start selling — files and buyer access stay on **your** Nextcloud instance (self-hosted, AGPL).
+
+### Why ShareGate?
+
+| | |
+|---|---|
+| **Self-hosted** | Digital products stay on your server — an alternative to Gumroad-style SaaS if you already run Nextcloud |
+| **Stripe & PayPal** | Checkout redirect + webhooks for international buyers (Alipay Face-to-Face optional for China-facing sellers) |
+| **Seller dashboard** | Browse files, create paid links, set price / access days / expiry, payment ledger, and stats |
+| **Buyer experience** | Clean paywall → pay → download; **My purchases** and optional save-to-cloud on the same instance |
+| **No second stack** | Pure PHP app inside Nextcloud — no Node.js ShareGate server to deploy |
+
+**Install:** Nextcloud **Apps** → **Paid sharing** (App Store when listed) or [manual install](#installation) from GitHub below.
+
+**Current version:** 1.3.5 — seller dashboard (Your shares · Paid shares · Account binding · Payment ledger · Statistics), buyer paywall and **My purchases**, **Stripe / PayPal** (+ Alipay Face-to-Face), save-to-cloud, bilingual UI (`en` / `zh_CN`).
+
+**Links:** [GitHub](https://github.com/abitlea/sharegate-nextcloud) · [Issues & feedback](https://github.com/abitlea/sharegate-nextcloud/issues) · [App Store listing](https://apps.nextcloud.com/apps/sharegate) (when published)
+
+---
 
 ## Requirements
 
@@ -29,11 +47,12 @@ Admin → **Apps** → enable **ShareGate** → run `php occ upgrade` (creates/u
 
 Multi-instance deployment: [docs/RELEASE.md](docs/RELEASE.md) (DietPi `/nextcloud` vs Docker `:8080`).
 
-3. Four sidebar pages:
+3. Sidebar pages:
    - **Your shares** — browse files; click **Add share** on unshared rows
    - **Paid shares** — copy link / edit / cancel
    - **Account binding** — admin configures **Stripe, PayPal, or Alipay** (Mock for dev only)
-   - **Revenue** — preview, save-to-cloud, and download counts
+   - **Payment ledger** — per-order payment records, payer account, amount, and status
+   - **Statistics** — preview, save-to-cloud, and download counts
 
 Create a share: `/apps/sharegate/embed/create` — optional `?path=Documents/a.pdf&name=a.pdf` to pre-fill.
 
@@ -41,9 +60,10 @@ Create a share: `/apps/sharegate/embed/create` — optional `?path=Documents/a.p
 
 Visit the seller link `/apps/sharegate/s/{shareId}`:
 
-- **Alipay** — scan QR code to pay
-- **Stripe / PayPal** — redirect to Checkout
+- **Stripe / PayPal** — redirect to Checkout (recommended for international buyers)
+- **Alipay** — scan QR code to pay (China-facing sellers)
 - After payment: download; logged-in users on the same server can **Save to my Nextcloud** (`ShareGate/` folder)
+- Logged-in buyers can open **My purchases** from the buyer download page to see history and download again within the access period
 
 ## Payment setup
 

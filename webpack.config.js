@@ -4,6 +4,7 @@ const webpackConfig = require('@nextcloud/webpack-vue-config')
 webpackConfig.entry = {
 	dashboard: path.join(__dirname, 'src', 'main.js'),
 	download: path.join(__dirname, 'src', 'download', 'index.js'),
+	'buyer-purchases': path.join(__dirname, 'src', 'buyer-purchases', 'main.js'),
 }
 
 // Nextcloud Util::addScript(APP_ID, 'dashboard') → js/dashboard.js
