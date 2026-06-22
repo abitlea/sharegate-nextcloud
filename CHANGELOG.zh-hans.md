@@ -1,6 +1,15 @@
 # 更新日志
 
-## 1.3.5 — 2026-06-03
+## 1.3.6 — Unreleased
+
+### 变更
+- **Service 层 i18n** — `ShareService`、`DownloadService`、`DashboardService`、`PublicLinkService`、`ShareStatsService`、`ShareFileResolver` 的 API 错误与状态消息改用 `IL10N`（英文界面不再从 Service 层返回硬编码中文）
+
+### 修复
+- **创建 / 编辑付费分享** — 校验与 API 错误在侧栏（`NcNoteCard`）与 toast 中可见；移除 HTML5 `required` 导致的静默拦截提交
+- **账户绑定** — 支付配置校验改为直接读表单值；Stripe/PayPal/支付宝必填项留空时显示 `NcNoteCard` 与 toast（修复 `NcTextField` 上 `reportValidity()` 无效）
+
+## 1.3.5 — 2026-06-22
 
 ### 新增
 - **我的已购** — 已登录买家可在管理台查看购买记录、在授权期内再次下载，并支持站内转存
@@ -12,7 +21,7 @@
 ### 修复
 - 应用商店 i18n：`info.xml` 英文 `name` / `summary` / `description` **不写 `lang`**，`zh-hans` 为简体中文（见 [App Store 开发者文档](https://nextcloudappstore.readthedocs.io/en/latest/developer.html)）
 
-## 1.3.4 — 2026-06-03
+## 1.3.4 — 2026-06-18
 
 ### 新增
 - **Stripe Checkout** — 国际卡/钱包支付（跳转 + Webhook）

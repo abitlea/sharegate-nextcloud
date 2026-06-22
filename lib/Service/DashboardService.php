@@ -8,6 +8,7 @@ use OCA\ShareGate\Db\PaymentMapper;
 use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCA\ShareGate\Util\ShareFileResolver;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 
 /**
@@ -29,6 +30,7 @@ class DashboardService {
 		private ShareFileResolver $shareFileResolver,
 		private PublicLinkService $publicLinkService,
 		private ShareStatsService $shareStatsService,
+		private IL10N $l,
 	) {
 	}
 
@@ -142,9 +144,9 @@ class DashboardService {
 				return $this->listActiveSharesPaginated($userId, $query, $limit, $offset);
 			}
 
-			return ['success' => false, 'error' => '不支持的筛选条件'];
+			return ['success' => false, 'error' => $this->l->t('Unsupported filter')];
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => '读取分享列表失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Share list failed: %s', [$e->getMessage()])];
 		}
 	}
 

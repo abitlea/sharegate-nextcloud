@@ -10,6 +10,7 @@ use OCP\DB\Exception;
 use OCP\Files\File;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
+use OCP\IL10N;
 
 /**
  * Resolve the Nextcloud file behind a paid share (file_id first, path fallback).
@@ -18,6 +19,7 @@ class ShareFileResolver {
 	public function __construct(
 		private IRootFolder $rootFolder,
 		private ShareMapper $shareMapper,
+		private IL10N $l,
 	) {
 	}
 
@@ -49,7 +51,7 @@ class ShareFileResolver {
 
 		$node = $userFolder->get($relative);
 		if (!$node instanceof File) {
-			throw new NotFoundException('文件不存在或不是文件');
+			throw new NotFoundException($this->l->t('File not found or not a file'));
 		}
 
 		return $node;

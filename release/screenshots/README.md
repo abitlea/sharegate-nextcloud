@@ -1,16 +1,15 @@
 # Store screenshots
 
-5 screenshots for the [Nextcloud App Store](https://apps.nextcloud.com/apps/sharegate) (`appinfo/info.xml`).
+6 screenshots for the [Nextcloud App Store](https://apps.nextcloud.com/apps/sharegate) (`appinfo/info.xml`).
 
 | File | Page (English UI) |
 |------|-------------------|
 | `01-your-shares.png` | Your shares |
 | `02-paid-shares.png` | Paid shares (also list thumbnail in `info.xml`) |
 | `03-account.png` | Account binding |
-| `04-stats.png` | Statistics |
+| `04-payment-ledger.png` | Payment ledger |
 | `05-buyer-pay.png` | Buyer paywall |
-| `06-ledger.png` | Payment ledger (optional App Store screenshot) |
-| `07-my-purchases.png` | My purchases (buyer page, optional) |
+| `06-stats.png` | Statistics (Revenue) |
 
 **Specs:** 1280×720 (or 16:9), each ≤ 2 MB, PNG.
 
@@ -66,14 +65,12 @@
 
 **English labels:** Account binding · Stripe · PayPal · Alipay · Save / Test connection (as implemented)
 
-### ④ `04-stats.png` — Statistics
+### ④ `04-payment-ledger.png` — Payment ledger
 
 | Step | Action |
 |------|--------|
-| Sidebar | **Statistics** |
-| Main area | Stats table: previews, save-to-cloud, downloads, amounts |
-| Nice to have | Non-zero numbers for 2+ shares |
-| Avoid | Empty “0 everywhere” if you have test orders |
+| Sidebar | **Payment ledger** |
+| Main area | Order list with amount, status, payer account |
 
 ### ⑤ `05-buyer-pay.png` — Buyer paywall
 
@@ -87,6 +84,13 @@
 
 **English labels:** Paid content · Pay now · Save to my Nextcloud · Download · Confirming payment…
 
+### ⑥ `06-stats.png` — Statistics
+
+| Step | Action |
+|------|--------|
+| Sidebar | **Statistics** |
+| Main area | Stats table: previews, save-to-cloud, downloads, amounts |
+
 ---
 
 ## After capture
@@ -96,8 +100,9 @@ release/screenshots/
   01-your-shares.png
   02-paid-shares.png
   03-account.png
-  04-stats.png
+  04-payment-ledger.png
   05-buyer-pay.png
+  06-stats.png
 ```
 
 1. Overwrite files (keep filenames — `info.xml` URLs unchanged).

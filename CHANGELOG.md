@@ -1,6 +1,15 @@
 # Changelog
 
-## 1.3.5 — 2026-06-03
+## 1.3.6 — Unreleased
+
+### Changed
+- **Service layer i18n** — `ShareService`, `DownloadService`, `DashboardService`, `PublicLinkService`, `ShareStatsService`, and `ShareFileResolver` now use `IL10N` for API error and status messages (English UI no longer shows hardcoded Chinese from the service layer)
+
+### Fixed
+- **Create / edit paid share** — validation and API errors now show in the sidebar (`NcNoteCard`) and as a toast; removed HTML5 `required` blocking silent submit
+- **Account binding** — payment config validation checks form values directly; empty Stripe/PayPal/Alipay fields show `NcNoteCard` and toast (replaces broken `reportValidity()` on `NcTextField`)
+
+## 1.3.5 — 2026-06-22
 
 ### Added
 - **My purchases** — logged-in buyers see purchase history in the dashboard, download again within the access period, and save to cloud
@@ -12,7 +21,7 @@
 ### Fixed
 - App Store listing i18n: `info.xml` uses **no `lang`** for English default (`name` / `summary` / `description`); `zh-hans` for Simplified Chinese (per [App Store developer guide](https://nextcloudappstore.readthedocs.io/en/latest/developer.html))
 
-## 1.3.4 — 2026-06-03
+## 1.3.4 — 2026-06-18
 
 ### Added
 - **Stripe Checkout** — international card/wallet payments (redirect + webhook)

@@ -12,6 +12,7 @@ use OCP\Files\IRootFolder;
 use OCP\Files\Node;
 use OCP\Files\NotFoundException;
 use OCP\IURLGenerator;
+use OCP\IL10N;
 use OCP\Share\IManager;
 use OCP\Share\IShare;
 
@@ -27,6 +28,7 @@ class PublicLinkService {
 		private IRootFolder $rootFolder,
 		private IManager $shareManager,
 		private IURLGenerator $urlGenerator,
+		private IL10N $l,
 	) {
 	}
 
@@ -62,7 +64,7 @@ class PublicLinkService {
 				'total' => $total,
 			];
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => '读取你的共享失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Your shares list failed: %s', [$e->getMessage()])];
 		}
 	}
 

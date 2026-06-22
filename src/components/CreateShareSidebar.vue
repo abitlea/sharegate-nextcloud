@@ -36,10 +36,10 @@
 					</NcButton>
 				</div>
 			</div>
-			<form v-else class="sg-sidebar-form" @submit.prevent="submit">
-				<p v-if="error" class="warning">
+			<form v-else class="sg-sidebar-form" novalidate @submit.prevent="submit">
+				<NcNoteCard v-if="error" type="warning">
 					{{ error }}
-				</p>
+				</NcNoteCard>
 				<div v-if="existingShareId" class="sg-sidebar-form__actions">
 					<NcButton type="primary" @click="openExistingShare">
 						{{ t('Open existing share') }}
@@ -53,28 +53,24 @@
 					:disabled="pathLocked"
 					:show-trailing-button="false"
 					:value.sync="form.file_path"
-					:placeholder="t('e.g. Documents/report.pdf')"
-					required />
+					:placeholder="t('e.g. Documents/report.pdf')" />
 				<NcTextField
 					:label="t('File name')"
 					:disabled="pathLocked"
 					:show-trailing-button="false"
-					:value.sync="form.file_name"
-					required />
+					:value.sync="form.file_name" />
 				<NcTextField
 					:label="t('Share title')"
 					:show-trailing-button="false"
 					:value.sync="form.title"
-					:placeholder="t('e.g. Paid document')"
-					required />
+					:placeholder="t('e.g. Paid document')" />
 				<NcTextField
 					:label="priceFieldLabel"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.priceAmount"
 					:min="priceInput.min"
-					:step="priceInput.step"
-					required />
+					:step="priceInput.step" />
 				<p class="sg-sidebar-form__note">
 					{{ priceChargedHint }} · {{ priceFieldHint }}
 				</p>
@@ -84,8 +80,7 @@
 					:show-trailing-button="false"
 					:value.sync="form.access_days"
 					:min="1"
-					:max="365"
-					required />
+					:max="365" />
 				<NcTextField
 					:label="t('Link expiry (days)')"
 					type="number"
@@ -112,7 +107,7 @@
 
 <script>
 import { t } from '../utils/l10n.js'
-import { showTemporary } from '../utils/notify.js'
+import { showError, showTemporary } from '../utils/notify.js'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
 import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -272,6 +267,10 @@ export default {
 		onClose() {
 			this.resetState()
 		},
+		showValidationError(message) {
+			this.error = message
+			showError(message)
+		},
 		async submit() {
 			const filePath = String(this.form.file_path || '').trim()
 			const fileName = String(this.form.file_name || '').trim()
@@ -281,15 +280,15 @@ export default {
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
 			if (!filePath || !fileName || !title) {
-				this.error = this.t('Please fill file path, name and title')
+				this.showValidationError(this.t('Please enter file path, name and share title'))
 				return
 			}
 			if (!priceAmount || priceAmount <= 0) {
-				this.error = this.t('Price must be greater than 0')
+				this.showValidationError(this.t('Price must be greater than 0'))
 				return
 			}
 			if (!accessDays || accessDays < 1) {
-				this.error = this.t('Access days must be at least 1')
+				this.showValidationError(this.t('Access days must be at least 1'))
 				return
 			}
 
@@ -317,7 +316,9 @@ export default {
 			try {
 				const data = await createShare(body)
 				if (!data.success) {
-					this.error = data.error || this.t('Create failed')
+					const msg = data.error || this.t('Failed to create share')
+					this.error = msg
+					showError(msg)
 					this.existingShareId = data.existing_share_id || ''
 					return
 				}
@@ -328,7 +329,9 @@ export default {
 				this.success = true
 				this.$emit('created', data)
 			} catch (e) {
-				this.error = this.t('Network error') + ': ' + e.message
+				const msg = this.t('Network error') + ': ' + e.message
+				this.error = msg
+				showError(msg)
 			} finally {
 				this.saving = false
 			}

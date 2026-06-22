@@ -164,7 +164,7 @@ class ShareController extends Controller {
 		return new DataResponse($result, $status);
 	}
 
-	/** 买家付费下载�?*/
+	/** Buyer paywall page. */
 	#[PublicPage]
 	#[NoCSRFRequired]
 	public function view(string $shareId): TemplateResponse {
@@ -447,7 +447,7 @@ class ShareController extends Controller {
 		return new DataResponse($info);
 	}
 
-	/** 验证下载权限（JSON�?*/
+	/** Verify download access (JSON). */
 	#[PublicPage]
 	#[NoCSRFRequired]
 	public function download(string $shareId): DataResponse {

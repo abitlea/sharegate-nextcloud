@@ -13,6 +13,7 @@ use OCP\DB\Exception;
 use OCP\Files\File;
 use OCP\Files\IMimeTypeDetector;
 use OCP\Files\NotFoundException;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 
 /**
@@ -29,6 +30,7 @@ class DownloadService {
 		private IURLGenerator $urlGenerator,
 		private BuyerAccessTokenService $accessTokenService,
 		private BuyerPurchasesTokenService $purchasesTokenService,
+		private IL10N $l,
 	) {
 	}
 
@@ -66,7 +68,7 @@ class DownloadService {
 			return [
 				'success' => false,
 				'code' => 'SHARE_NOT_FOUND',
-				'message' => '分享链接不存在',
+				'message' => $this->l->t('Share link not found'),
 			];
 		}
 
@@ -74,7 +76,7 @@ class DownloadService {
 			return [
 				'success' => false,
 				'code' => 'SHARE_EXPIRED',
-				'message' => '分享已过期',
+				'message' => $this->l->t('Share expired'),
 			];
 		}
 
@@ -83,8 +85,8 @@ class DownloadService {
 			return [
 				'success' => false,
 				'code' => 'MISSING_TOKEN',
-				'message' => '缺少下载凭证',
-				'error' => '请先支付获取下载权限',
+				'message' => $this->l->t('Missing download credentials'),
+				'error' => $this->l->t('Pay first to get download access'),
 			];
 		}
 
@@ -95,8 +97,8 @@ class DownloadService {
 				return [
 					'success' => false,
 					'code' => 'ACCESS_DENIED',
-					'message' => '没有下载权限，请先支付',
-					'error' => '请先扫码支付后再下载',
+					'message' => $this->l->t('Download permission denied'),
+					'error' => $this->l->t('Pay before downloading'),
 				];
 			}
 			$grant = $this->accessGrantMapper->findActive($shareId, $payerId);
@@ -104,7 +106,7 @@ class DownloadService {
 			return [
 				'success' => false,
 				'code' => 'ACCESS_DENIED',
-				'message' => '没有下载权限或授权已过期',
+				'message' => $this->l->t('No download access or authorization has expired'),
 			];
 		}
 
@@ -124,7 +126,7 @@ class DownloadService {
 		$response = [
 			'success' => true,
 			'code' => 'ACCESS_GRANTED',
-			'message' => '下载权限验证通过',
+			'message' => $this->l->t('Download access verified'),
 			'file_path' => $share->getFilePath(),
 			'file_name' => $share->getFileName(),
 			'storage_type' => $share->getStorageType(),

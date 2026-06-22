@@ -22,7 +22,9 @@
 
 		<div class="sg-account-panel__body">
 			<NcLoadingIcon v-if="loading" class="sg-dashboard__loading" :size="32" />
-			<p v-else-if="loadError" class="warning">{{ loadError }}</p>
+			<NcNoteCard v-else-if="loadError" type="warning">
+				{{ loadError }}
+			</NcNoteCard>
 
 			<template v-else>
 				<p v-if="showHint" class="settings-hint">
@@ -32,7 +34,11 @@
 				<form
 					v-if="isAdmin"
 					class="sg-account-form"
+					novalidate
 					@submit.prevent="onSubmit">
+					<NcNoteCard v-if="saveError" type="warning">
+						{{ saveError }}
+					</NcNoteCard>
 					<div v-show="showSection('mode')" class="sg-account-form__field">
 						<label class="sg-account-form__label" for="sg-payment-mode">
 							{{ t('Payment mode') }}
@@ -62,7 +68,6 @@
 						<h3>{{ t('Stripe') }}</h3>
 						<div v-show="showSection('stripe_secret')" class="sg-account-form__field">
 							<NcTextField
-								ref="stripeSecretKey"
 								:label="t('Stripe secret key')"
 								:value.sync="form.stripe.secret_key"
 								:show-trailing-button="false"
@@ -70,7 +75,6 @@
 						</div>
 						<div v-show="showSection('stripe_webhook')" class="sg-account-form__field">
 							<NcTextField
-								ref="stripeWebhookSecret"
 								:label="t('Stripe webhook secret')"
 								:value.sync="form.stripe.webhook_secret"
 								:show-trailing-button="false"
@@ -104,7 +108,6 @@
 						<h3>{{ t('PayPal') }}</h3>
 						<div v-show="showSection('paypal_client_id')" class="sg-account-form__field">
 							<NcTextField
-								ref="paypalClientId"
 								:label="t('PayPal Client ID')"
 								:value.sync="form.paypal.client_id"
 								:show-trailing-button="false"
@@ -112,7 +115,6 @@
 						</div>
 						<div v-show="showSection('paypal_client_secret')" class="sg-account-form__field">
 							<NcTextField
-								ref="paypalClientSecret"
 								:label="t('PayPal Client Secret')"
 								:value.sync="form.paypal.client_secret"
 								:show-trailing-button="false"
@@ -169,7 +171,6 @@
 						<h3>{{ t('Alipay Face-to-Face') }}</h3>
 						<div v-show="showSection('app_id')" class="sg-account-form__field">
 							<NcTextField
-								ref="alipayAppId"
 								label="App ID"
 								:show-trailing-button="false"
 								:value.sync="form.alipay.app_id"
@@ -177,7 +178,6 @@
 						</div>
 						<div v-show="showSection('private_key')" class="sg-account-form__field">
 							<NcTextArea
-								ref="alipayPrivateKey"
 								:label="t('Application private key')"
 								:value.sync="form.alipay.private_key"
 								:rows="4"
@@ -185,7 +185,6 @@
 						</div>
 						<div v-show="showSection('public_key')" class="sg-account-form__field">
 							<NcTextArea
-								ref="alipayPublicKey"
 								:label="t('Alipay public key')"
 								:value.sync="form.alipay.alipay_public_key"
 								:rows="4"
@@ -368,6 +367,7 @@ export default {
 			providers: [],
 			mockSelectable: false,
 			saving: false,
+			saveError: '',
 		}
 	},
 	computed: {
@@ -621,6 +621,7 @@ export default {
 		async loadAccount() {
 			this.loading = true
 			this.loadError = ''
+			this.saveError = ''
 			try {
 				const data = await loadAccountSettings()
 				if (!data) {
@@ -675,6 +676,10 @@ export default {
 					|| this.t('Failed to load payment settings')
 			}
 		},
+		showValidationError(message) {
+			this.saveError = message
+			showError(message)
+		},
 		onSubmit(event) {
 			event.preventDefault()
 			this.onSaveClick()
@@ -686,49 +691,40 @@ export default {
 			if (event?.preventDefault) {
 				event.preventDefault()
 			}
-			if (!this.validateRequiredFields()) {
+			this.saveError = ''
+			if (!this.validatePaymentForm()) {
 				return
 			}
 			this.save()
 		},
-		getNativeInput(refName) {
-			const root = this.$refs[refName]
-			if (!root) {
-				return null
-			}
-			const el = root.$el || root
-			if (typeof el.querySelector !== 'function') {
-				return null
-			}
-			return el.querySelector('input, textarea')
-		},
-		reportEmptyField(refName) {
-			const input = this.getNativeInput(refName)
-			if (!input) {
-				return false
-			}
-			const wasRequired = input.required
-			input.required = true
-			const empty = !String(input.value || '').trim()
-			if (empty) {
-				input.reportValidity()
-				input.focus()
-			}
-			input.required = wasRequired
-			return !empty
-		},
-		validateRequiredFields() {
+		validatePaymentForm() {
 			const mode = this.form.payment_mode
-			const fields = {
-				paypal: ['paypalClientId', 'paypalClientSecret'],
-				stripe: ['stripeSecretKey', 'stripeWebhookSecret'],
-				alipay_f2f: ['alipayAppId', 'alipayPrivateKey', 'alipayPublicKey'],
-			}[mode]
-			if (!fields) {
-				return true
-			}
-			for (const refName of fields) {
-				if (!this.reportEmptyField(refName)) {
+			if (mode === 'stripe') {
+				const secretKey = String(this.form.stripe.secret_key || '').trim()
+				const webhookSecret = String(this.form.stripe.webhook_secret || '').trim()
+				if (secretKey === '' || webhookSecret === '') {
+					this.showValidationError(this.t(
+						'Stripe is not configured. Set the secret key and webhook secret, then select Stripe.',
+					))
+					return false
+				}
+			} else if (mode === 'paypal') {
+				const clientId = String(this.form.paypal.client_id || '').trim()
+				const clientSecret = String(this.form.paypal.client_secret || '').trim()
+				if (clientId === '' || clientSecret === '') {
+					this.showValidationError(this.t(
+						'PayPal is not configured. Set Client ID and Client Secret, then select PayPal.',
+					))
+					return false
+				}
+			} else if (mode === 'alipay_f2f') {
+				const appId = String(this.form.alipay.app_id || '').trim()
+				const privateKey = String(this.form.alipay.private_key || '').trim()
+				const publicKey = String(this.form.alipay.alipay_public_key || '').trim()
+				if (appId === '' || privateKey === '' || publicKey === '') {
+					this.showValidationError(this.t(
+						'Alipay is not fully configured. Set App ID, application private key, and Alipay public key, then select Alipay Face-to-Face.',
+					))
 					return false
 				}
 			}
@@ -763,13 +759,18 @@ export default {
 					if (data.summary) {
 						this.applyAdminSummary(data.summary)
 					}
+					this.saveError = ''
 					showTemporary(data.message || this.t('Settings saved'))
 					window.dispatchEvent(new Event('sharegate:payment-saved'))
 					return
 				}
-				showError(data?.error || data?.message || this.t('Save failed'))
+				const msg = data?.error || data?.message || this.t('Save failed')
+				this.saveError = msg
+				showError(msg)
 			} catch (e) {
-				showError(e?.message || this.t('Save failed'))
+				const msg = e?.message || this.t('Save failed')
+				this.saveError = msg
+				showError(msg)
 			} finally {
 				this.saving = false
 			}

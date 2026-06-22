@@ -372,7 +372,25 @@
                          "Verify and view purchases":  "Verify and view purchases",
                          "Purchase list is protected. Verify your payment account or open a signed link after payment.":  "Purchase list is protected. Enter your full payment account to verify, or open a signed link after payment.",
                          "Sign in to view purchases":  "Sign in to view purchases",
-                         "Purchases login failed":  "No purchases found for this payment account"
+                         "Purchases login failed":  "No purchases found for this payment account",
+                         "Missing required fields: file_path, file_name, title":  "Missing required fields: file_path, file_name, title",
+                         "Price must be a positive integer (cents)":  "Price must be a positive integer (cents)",
+                         "This file already has an active paid share. Edit the existing link or cancel it before creating a new one.":  "This file already has an active paid share. Edit the existing link or cancel it before creating a new one.",
+                         "Failed to save share: %s":  "Failed to save share: %s",
+                         "Select a file; folders are not supported":  "Select a file; folders are not supported",
+                         "Share not found or access denied":  "Share not found or access denied",
+                         "This share is disabled and cannot be edited":  "This share is disabled and cannot be edited",
+                         "Please enter a share title":  "Please enter a share title",
+                         "Save failed: %s":  "Save failed: %s",
+                         "This share is already disabled":  "This share is already disabled",
+                         "Failed to disable share: %s":  "Failed to disable share: %s",
+                         "Missing download credentials":  "Missing download credentials",
+                         "Pay first to get download access":  "Pay first to get download access",
+                         "Pay before downloading":  "Pay before downloading",
+                         "No download access or authorization has expired":  "No download access or authorization has expired",
+                         "Download access verified":  "Download access verified",
+                         "Unsupported filter":  "Unsupported filter",
+                         "File not found or not a file":  "File not found or not a file"
                      },
     "pluralForm":  "nplurals=2; plural=(n != 1);"
 }

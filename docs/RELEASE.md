@@ -282,7 +282,7 @@ powershell -ExecutionPolicy Bypass -File scripts\release\verify-all.ps1 -UseDock
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\release\f1-package.ps1
-# 输出: release/sharegate-1.3.5.tar.gz
+# 输出: release/sharegate-1.3.6.tar.gz
 ```
 
 上架清单：[STORE.md](STORE.md)

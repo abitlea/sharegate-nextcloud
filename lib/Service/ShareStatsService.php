@@ -9,6 +9,7 @@ use OCA\ShareGate\Db\Share;
 use OCA\ShareGate\Db\ShareMapper;
 use OCA\ShareGate\Db\ShareStatsMapper;
 use OCA\ShareGate\Util\ShareFileResolver;
+use OCP\IL10N;
 
 class ShareStatsService {
 	public function __construct(
@@ -16,6 +17,7 @@ class ShareStatsService {
 		private ShareStatsMapper $shareStatsMapper,
 		private PaymentMapper $paymentMapper,
 		private ShareFileResolver $shareFileResolver,
+		private IL10N $l,
 	) {
 	}
 
@@ -83,7 +85,7 @@ class ShareStatsService {
 				'total' => count($items),
 			];
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => '读取统计失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Statistics API failed: %s', [$e->getMessage()])];
 		}
 	}
 

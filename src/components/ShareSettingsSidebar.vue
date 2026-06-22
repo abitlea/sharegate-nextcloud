@@ -18,17 +18,19 @@
 			:order="0">
 			<NcLoadingIcon v-if="loading" class="sg-sidebar__loading" :size="32" />
 			<div v-else-if="loadError" class="sg-sidebar-form">
-				<p class="warning">{{ loadError }}</p>
+				<NcNoteCard type="warning">
+					{{ loadError }}
+				</NcNoteCard>
 				<div class="sg-sidebar-form__actions">
 					<NcButton @click="close">
 						{{ t('Close') }}
 					</NcButton>
 				</div>
 			</div>
-			<form v-else class="sg-sidebar-form" @submit.prevent="save">
-				<p v-if="error" class="warning">
+			<form v-else class="sg-sidebar-form" novalidate @submit.prevent="save">
+				<NcNoteCard v-if="error" type="warning">
 					{{ error }}
-				</p>
+				</NcNoteCard>
 				<NcTextField
 					:label="t('File path')"
 					:readonly="true"
@@ -42,16 +44,14 @@
 				<NcTextField
 					:label="t('Share title')"
 					:show-trailing-button="false"
-					:value.sync="form.title"
-					required />
+					:value.sync="form.title" />
 				<NcTextField
 					:label="priceFieldLabel"
 					type="number"
 					:show-trailing-button="false"
 					:value.sync="form.priceAmount"
 					:min="priceInput.min"
-					:step="priceInput.step"
-					required />
+					:step="priceInput.step" />
 				<p class="sg-sidebar-form__note">
 					{{ priceChargedHint }} · {{ priceFieldHint }}
 				</p>
@@ -61,8 +61,7 @@
 					:show-trailing-button="false"
 					:value.sync="form.access_days"
 					:min="1"
-					:max="365"
-					required />
+					:max="365" />
 				<NcTextField
 					:label="t('Link expiry (days)')"
 					type="number"
@@ -94,7 +93,7 @@
 
 <script>
 import { t } from '../utils/l10n.js'
-import { showTemporary } from '../utils/notify.js'
+import { showError, showTemporary } from '../utils/notify.js'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
 import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -243,6 +242,10 @@ export default {
 				this.loading = false
 			}
 		},
+		showValidationError(message) {
+			this.error = message
+			showError(message)
+		},
 		async save() {
 			const title = String(this.form.title || '').trim()
 			const priceAmount = parseFloat(this.form.priceAmount)
@@ -250,15 +253,15 @@ export default {
 			const expireStr = String(this.form.share_expire_days ?? '').trim()
 
 			if (!title) {
-				this.error = this.t('Please enter a share title')
+				this.showValidationError(this.t('Please enter a share title'))
 				return
 			}
 			if (!priceAmount || priceAmount <= 0) {
-				this.error = this.t('Price must be greater than 0')
+				this.showValidationError(this.t('Price must be greater than 0'))
 				return
 			}
 			if (!accessDays || accessDays < 1) {
-				this.error = this.t('Access days must be at least 1')
+				this.showValidationError(this.t('Access days must be at least 1'))
 				return
 			}
 
@@ -278,10 +281,14 @@ export default {
 					this.$emit('saved')
 					this.close()
 				} else {
-					this.error = data.error || this.t('Save failed')
+					const msg = data.error || this.t('Save failed')
+					this.error = msg
+					showError(msg)
 				}
 			} catch (e) {
-				this.error = this.t('Network error') + ': ' + e.message
+				const msg = this.t('Network error') + ': ' + e.message
+				this.error = msg
+				showError(msg)
 			} finally {
 				this.saving = false
 			}

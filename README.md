@@ -18,7 +18,7 @@ ShareGate (**Paid sharing**) turns files in your drive into **paid download link
 
 **Install:** Nextcloud **Apps** → **Paid sharing** (App Store when listed) or [manual install](#installation) from GitHub below.
 
-**Current version:** 1.3.5 — seller dashboard (Your shares · Paid shares · Account binding · Payment ledger · Statistics), buyer paywall and **My purchases**, **Stripe / PayPal** (+ Alipay Face-to-Face), save-to-cloud, bilingual UI (`en` / `zh_CN`).
+**Current version:** 1.3.6 — seller dashboard (Your shares · Paid shares · Account binding · Payment ledger · Statistics), buyer paywall and **My purchases**, **Stripe / PayPal** (+ Alipay Face-to-Face), save-to-cloud, bilingual UI (`en` / `zh_CN`); Service-layer API messages and form validation errors are fully localized.
 
 **Links:** [GitHub](https://github.com/abitlea/sharegate-nextcloud) · [Issues & feedback](https://github.com/abitlea/sharegate-nextcloud/issues) · [App Store listing](https://apps.nextcloud.com/apps/sharegate) (when published)
 

@@ -12,6 +12,7 @@ use OCP\Files\File;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 
@@ -25,6 +26,7 @@ class ShareService {
 		private IRootFolder $rootFolder,
 		private IConfig $config,
 		private IURLGenerator $urlGenerator,
+		private IL10N $l,
 	) {
 	}
 
@@ -39,7 +41,7 @@ class ShareService {
 	public function createShare(array $data): array {
 		$userId = $this->getCurrentUserId();
 		if ($userId === null) {
-			return ['success' => false, 'error' => '请先登录 Nextcloud'];
+			return ['success' => false, 'error' => $this->l->t('Please log in to Nextcloud')];
 		}
 
 		$filePath = trim((string)($data['file_path'] ?? ''));
@@ -50,10 +52,10 @@ class ShareService {
 		$shareExpireDays = isset($data['share_expire_days']) ? (int)$data['share_expire_days'] : null;
 
 		if ($filePath === '' || $fileName === '' || $title === '') {
-			return ['success' => false, 'error' => '缺少必填字段: file_path, file_name, title'];
+			return ['success' => false, 'error' => $this->l->t('Missing required fields: file_path, file_name, title')];
 		}
 		if ($price <= 0) {
-			return ['success' => false, 'error' => '价格必须为正整数（单位：分）'];
+			return ['success' => false, 'error' => $this->l->t('Price must be a positive integer (cents)')];
 		}
 
 		$minPrice = (int)$this->config->getAppValue('sharegate', 'min_price', '1');
@@ -65,7 +67,7 @@ class ShareService {
 			$fileId = isset($data['file_id']) ? (int)$data['file_id'] : null;
 			$fileInfo = $this->resolveUserFile($userId, $filePath, $fileName, $fileId > 0 ? $fileId : null);
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => '文件不存在或无权访问: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('File not found: %s', [$e->getMessage()])];
 		}
 
 		$existing = null;
@@ -78,7 +80,7 @@ class ShareService {
 		if ($existing !== null) {
 			return [
 				'success' => false,
-				'error' => '该文件已有付费分享，请直接编辑已有链接，或先取消旧分享后再创建',
+				'error' => $this->l->t('This file already has an active paid share. Edit the existing link or cancel it before creating a new one.'),
 				'existing_share_id' => $existing->getShareId(),
 			];
 		}
@@ -109,7 +111,7 @@ class ShareService {
 			/** @var Share $saved */
 			$saved = $this->shareMapper->insert($share);
 		} catch (Exception $e) {
-			return ['success' => false, 'error' => '保存分享失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Failed to save share: %s', [$e->getMessage()])];
 		}
 
 		$shareUrl = $this->urlGenerator->linkToRouteAbsolute('sharegate.share.view', ['shareId' => $shareId]);
@@ -159,7 +161,7 @@ class ShareService {
 		}
 
 		if (!$node instanceof File) {
-			throw new NotFoundException('请选择文件，不支持文件夹');
+			throw new NotFoundException($this->l->t('Select a file; folders are not supported'));
 		}
 
 		return [
@@ -188,7 +190,7 @@ class ShareService {
 		try {
 			$share = $this->shareMapper->findOwnedByShareId($shareId, $userId);
 		} catch (\OCP\AppFramework\Db\DoesNotExistException $e) {
-			return ['success' => false, 'error' => '分享不存在或无权访问'];
+			return ['success' => false, 'error' => $this->l->t('Share not found or access denied')];
 		}
 
 		return [
@@ -204,11 +206,11 @@ class ShareService {
 		try {
 			$share = $this->shareMapper->findOwnedByShareId($shareId, $userId);
 		} catch (\OCP\AppFramework\Db\DoesNotExistException $e) {
-			return ['success' => false, 'error' => '分享不存在或无权访问'];
+			return ['success' => false, 'error' => $this->l->t('Share not found or access denied')];
 		}
 
 		if ($share->getStatus() !== 'active') {
-			return ['success' => false, 'error' => '该分享已停用，无法编辑'];
+			return ['success' => false, 'error' => $this->l->t('This share is disabled and cannot be edited')];
 		}
 
 		$title = trim((string)($data['title'] ?? ''));
@@ -218,10 +220,10 @@ class ShareService {
 		$shareExpireDays = $hasExpireDays ? (int)$data['share_expire_days'] : null;
 
 		if ($title === '') {
-			return ['success' => false, 'error' => '请填写分享标题'];
+			return ['success' => false, 'error' => $this->l->t('Please enter a share title')];
 		}
 		if ($price <= 0) {
-			return ['success' => false, 'error' => '价格必须为正整数（单位：分）'];
+			return ['success' => false, 'error' => $this->l->t('Price must be a positive integer (cents)')];
 		}
 
 		$minPrice = (int)$this->config->getAppValue('sharegate', 'min_price', '1');
@@ -248,7 +250,7 @@ class ShareService {
 		try {
 			$this->shareMapper->update($share);
 		} catch (Exception $e) {
-			return ['success' => false, 'error' => '保存失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Save failed: %s', [$e->getMessage()])];
 		}
 
 		return [
@@ -300,15 +302,15 @@ class ShareService {
 		try {
 			$share = $this->shareMapper->findOwnedByShareId($shareId, $userId);
 		} catch (\OCP\AppFramework\Db\DoesNotExistException $e) {
-			return ['success' => false, 'error' => '分享不存在或无权访问'];
+			return ['success' => false, 'error' => $this->l->t('Share not found or access denied')];
 		}
 		if ($share->getStatus() !== 'active') {
-			return ['success' => false, 'error' => '该分享已停用'];
+			return ['success' => false, 'error' => $this->l->t('This share is already disabled')];
 		}
 		try {
 			$this->shareMapper->disableShare($shareId);
 		} catch (\OCP\DB\Exception $e) {
-			return ['success' => false, 'error' => '停用失败: ' . $e->getMessage()];
+			return ['success' => false, 'error' => $this->l->t('Failed to disable share: %s', [$e->getMessage()])];
 		}
 		return ['success' => true, 'share_id' => $shareId];
 	}

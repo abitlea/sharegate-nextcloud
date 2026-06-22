@@ -372,7 +372,25 @@
                          "Verify and view purchases":  "验证并查看已购",
                          "Purchase list is protected. Verify your payment account or open a signed link after payment.":  "已购列表受保护。请输入付款时使用的完整账号进行验证，或使用支付成功后获得的签名链接打开。",
                          "Sign in to view purchases":  "登录查看已购记录",
-                         "Purchases login failed":  "未找到该支付账号的购买记录"
+                         "Purchases login failed":  "未找到该支付账号的购买记录",
+                         "Missing required fields: file_path, file_name, title":  "缺少必填字段：file_path、file_name、title",
+                         "Price must be a positive integer (cents)":  "价格必须为正整数（单位：分）",
+                         "This file already has an active paid share. Edit the existing link or cancel it before creating a new one.":  "该文件已有付费分享，请直接编辑已有链接，或先取消旧分享后再创建",
+                         "Failed to save share: %s":  "保存分享失败：%s",
+                         "Select a file; folders are not supported":  "请选择文件，不支持文件夹",
+                         "Share not found or access denied":  "分享不存在或无权访问",
+                         "This share is disabled and cannot be edited":  "该分享已停用，无法编辑",
+                         "Please enter a share title":  "请填写分享标题",
+                         "Save failed: %s":  "保存失败：%s",
+                         "This share is already disabled":  "该分享已停用",
+                         "Failed to disable share: %s":  "停用失败：%s",
+                         "Missing download credentials":  "缺少下载凭证",
+                         "Pay first to get download access":  "请先支付获取下载权限",
+                         "Pay before downloading":  "请先支付后再下载",
+                         "No download access or authorization has expired":  "没有下载权限或授权已过期",
+                         "Download access verified":  "下载权限验证通过",
+                         "Unsupported filter":  "不支持的筛选条件",
+                         "File not found or not a file":  "文件不存在或不是文件"
                      },
     "pluralForm":  "nplurals=1; plural=0;"
 }

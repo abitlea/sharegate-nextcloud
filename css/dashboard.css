@@ -783,6 +783,18 @@ tr:focus .sg-actions .button:focus {
 	margin: 24px auto;
 }
 
+/* Inline list / panel errors (sidebar forms use NcNoteCard) */
+.sg-dashboard .warning,
+.sg-sidebar-form .warning {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-warning-element);
+	color: var(--color-warning-text);
+	font-size: var(--font-size-small, 13px);
+	line-height: 1.4;
+}
+
 /* ===== Settings dialog ===== */
 .sg-settings-dialog {
     padding: 16px;
